@@ -54,6 +54,10 @@ services:
     image: mysql:8.0
     container_name: venrixmc-mysql
     restart: unless-stopped
+    # Prisma's query engine doesn't speak the legacy sha256_password plugin
+    # some MySQL 8 setups end up using — force mysql_native_password so
+    # freshly-created users (MYSQL_USER below) are always compatible.
+    command: --default-authentication-plugin=mysql_native_password
     environment:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
