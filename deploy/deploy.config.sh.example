@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Copy this file to deploy/deploy.config.sh and fill in your real values.
+# deploy.config.sh is gitignored — it's local connection info, not code.
+
+SERVER_USER="root"
+SERVER_HOST="your.server.ip.or.hostname"
+SERVER_PORT="22"
+# Absolute path on the server where the project lives.
+SERVER_PATH="/opt/venrixmc-website"

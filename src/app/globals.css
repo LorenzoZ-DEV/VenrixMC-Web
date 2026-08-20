@@ -1,0 +1,164 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-ink-900 text-slate-100 font-body antialiased;
+}
+
+::selection {
+  @apply bg-venrix-600/60 text-white;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-ink-900;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-venrix-700;
+  border: 2px solid theme("colors.ink.900");
+}
+
+/* ---- Pixel corner-notch (Minecraft GUI panel corners) ---- */
+.pixel-corners {
+  clip-path: polygon(
+    0 6px, 6px 6px, 6px 0,
+    calc(100% - 6px) 0, calc(100% - 6px) 6px, 100% 6px,
+    100% calc(100% - 6px), calc(100% - 6px) calc(100% - 6px), calc(100% - 6px) 100%,
+    6px 100%, 6px calc(100% - 6px), 0 calc(100% - 6px)
+  );
+}
+.pixel-corners-sm {
+  clip-path: polygon(
+    0 3px, 3px 3px, 3px 0,
+    calc(100% - 3px) 0, calc(100% - 3px) 3px, 100% 3px,
+    100% calc(100% - 3px), calc(100% - 3px) calc(100% - 3px), calc(100% - 3px) 100%,
+    3px 100%, 3px calc(100% - 3px), 0 calc(100% - 3px)
+  );
+}
+
+/* ---- GUI panel (inventory-style) ---- */
+.venrix-card {
+  @apply pixel-corners relative border-2 border-black/40 bg-ink-700;
+  box-shadow:
+    inset 2px 2px 0 rgba(255, 255, 255, 0.06),
+    inset -2px -2px 0 rgba(0, 0, 0, 0.35),
+    0 3px 0 rgba(0, 0, 0, 0.4);
+}
+
+/* ---- Chunky pixel buttons (Minecraft UI bevel) ---- */
+.venrix-btn-primary {
+  @apply pixel-corners-sm inline-flex items-center justify-center gap-2 border-2 border-black/50 bg-venrix-600 px-5 py-3 font-display text-[11px] uppercase tracking-wide text-white transition active:translate-y-[1px] disabled:opacity-50 disabled:pointer-events-none;
+  box-shadow:
+    inset 2px 2px 0 rgba(255, 255, 255, 0.25),
+    inset -2px -2px 0 rgba(0, 0, 0, 0.35),
+    0 3px 0 rgba(0, 0, 0, 0.5);
+}
+.venrix-btn-primary:hover {
+  @apply bg-venrix-500;
+}
+.venrix-btn-primary:active {
+  box-shadow:
+    inset 2px 2px 0 rgba(0, 0, 0, 0.35),
+    inset -2px -2px 0 rgba(255, 255, 255, 0.1);
+}
+
+.venrix-btn-secondary {
+  @apply pixel-corners-sm inline-flex items-center justify-center gap-2 border-2 border-white/20 bg-ink-700 px-5 py-3 font-display text-[11px] uppercase tracking-wide text-venrix-100 transition active:translate-y-[1px] disabled:opacity-50 disabled:pointer-events-none;
+  box-shadow:
+    inset 2px 2px 0 rgba(255, 255, 255, 0.08),
+    inset -2px -2px 0 rgba(0, 0, 0, 0.4),
+    0 3px 0 rgba(0, 0, 0, 0.4);
+}
+.venrix-btn-secondary:hover {
+  @apply border-venrix-500/50 bg-ink-600;
+}
+
+.venrix-input {
+  @apply w-full border-2 border-black/40 bg-ink-900 px-4 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 outline-none transition focus:border-venrix-500;
+  box-shadow: inset 2px 2px 0 rgba(0, 0, 0, 0.4);
+}
+
+.venrix-label {
+  @apply mb-1.5 block font-display text-[10px] uppercase tracking-wide text-slate-400;
+}
+
+/* ---- Generic pixel button (used by <Button>/<LinkButton>) ---- */
+.pixel-btn {
+  @apply pixel-corners-sm inline-flex items-center justify-center gap-2 border-2 font-display uppercase tracking-wide transition active:translate-y-[1px] disabled:opacity-50 disabled:pointer-events-none;
+}
+.pixel-btn-primary {
+  @apply pixel-btn border-black/50 bg-venrix-600 text-white hover:bg-venrix-500;
+  box-shadow:
+    inset 2px 2px 0 rgba(255, 255, 255, 0.25),
+    inset -2px -2px 0 rgba(0, 0, 0, 0.35),
+    0 3px 0 rgba(0, 0, 0, 0.5);
+}
+.pixel-btn-secondary {
+  @apply pixel-btn border-white/20 bg-ink-700 text-venrix-100 hover:border-venrix-500/50 hover:bg-ink-600;
+  box-shadow:
+    inset 2px 2px 0 rgba(255, 255, 255, 0.08),
+    inset -2px -2px 0 rgba(0, 0, 0, 0.4),
+    0 3px 0 rgba(0, 0, 0, 0.4);
+}
+.pixel-btn-danger {
+  @apply pixel-btn border-black/50 bg-red-700 text-white hover:bg-red-600;
+  box-shadow:
+    inset 2px 2px 0 rgba(255, 255, 255, 0.2),
+    inset -2px -2px 0 rgba(0, 0, 0, 0.35),
+    0 3px 0 rgba(0, 0, 0, 0.5);
+}
+.pixel-btn-ghost {
+  @apply inline-flex items-center justify-center gap-2 border-2 border-transparent font-display uppercase tracking-wide text-slate-300 transition hover:border-white/10 hover:bg-white/5 hover:text-white disabled:opacity-50 disabled:pointer-events-none;
+}
+
+/* Prose (news/rules HTML content) kept legible — pixel font is display-only */
+.prose :is(h1, h2, h3, h4) {
+  font-family: var(--font-display), sans-serif;
+}
+
+/* ---- Route-change loader ---- */
+@keyframes venrix-pixel-blink {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 1; }
+}
+.venrix-pixel-dot {
+  animation: venrix-pixel-blink 1s ease-in-out infinite;
+}
+
+/*
+ * ---- "Building" entrance (plays every time you land on the homepage) ----
+ * Elements marked data-build are invisible/collapsed by default only while
+ * an ancestor carries .venrix-building — toggled on/off by
+ * HomeBuildTrigger.tsx, mounted at the top of the home page, so it re-fires
+ * on every navigation to "/". Without that class every [data-build]
+ * element is just... a normal, fully visible element, so nothing regresses
+ * if JS is slow/blocked.
+ */
+@keyframes venrix-build-in {
+  0% {
+    opacity: 0;
+    transform: translateY(26px) scaleY(0.85);
+    clip-path: inset(100% 0 0 0);
+  }
+  55% {
+    opacity: 1;
+    clip-path: inset(0 0 0 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+    clip-path: inset(0 0 0 0);
+  }
+}
+.venrix-building [data-build] {
+  transform-origin: bottom center;
+  animation: venrix-build-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: var(--build-delay, 0ms);
+}

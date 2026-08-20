@@ -1,0 +1,145 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  STAFF
+  HEAD
+  ADMIN
+  DEVELOPER
+}
+
+enum AppealStatus {
+  PENDING
+  APPROVED
+  DENIED
+}
+
+enum ApplyStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(STAFF)
+  active       Boolean  @default(true)
+  discordId       String?  @unique
+  discordUsername String?
+  discordAvatar   String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  news           News[]
+  reviewedAppeals   Appeal[]     @relation("AppealReviewer")
+  reviewedApplies   StaffApply[] @relation("ApplyReviewer")
+  auditLogs      AuditLog[]
+
+  @@map("users")
+}
+
+model News {
+  id         String   @id @default(cuid())
+  title      String
+  slug       String   @unique
+  excerpt    String?  @db.VarChar(500)
+  content    String   @db.LongText
+  coverImage String?
+  published  Boolean  @default(false)
+  authorId   String
+  author     User     @relation(fields: [authorId], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([authorId])
+  @@index([published, createdAt])
+  @@map("news")
+}
+
+model Appeal {
+  id            String       @id @default(cuid())
+  minecraftName String
+  uuid          String?
+  banId         String?      @db.VarChar(20)
+  banReason     String?      @db.VarChar(500)
+  message       String       @db.Text
+  status        AppealStatus @default(PENDING)
+  staffNotes    String?      @db.Text
+  ip            String?
+  reviewedById  String?
+  reviewedBy    User?        @relation("AppealReviewer", fields: [reviewedById], references: [id])
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([status, createdAt])
+  @@index([minecraftName])
+  @@map("appeals")
+}
+
+model StaffApply {
+  id            String      @id @default(cuid())
+  minecraftName String
+  discord       String
+  age           Int
+  experience    String      @db.Text
+  roles         String
+  message       String      @db.Text
+  answers       Json?
+  status        ApplyStatus @default(PENDING)
+  ip            String?
+  reviewedById  String?
+  reviewedBy    User?       @relation("ApplyReviewer", fields: [reviewedById], references: [id])
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([status, createdAt])
+  @@map("staff_applies")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String
+  details   String?  @db.Text
+  timestamp DateTime @default(now())
+
+  @@index([userId])
+  @@index([timestamp])
+  @@map("audit_logs")
+}
+
+model StaffPosition {
+  id           String   @id @default(cuid())
+  slug         String   @unique
+  title        String
+  tagline      String   @db.VarChar(500)
+  icon         String   @default("chat")
+  slots        Int      @default(0)
+  open         Boolean  @default(true)
+  requirements Json
+  wizardId     String?
+  order        Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("staff_positions")
+}
+
+model SiteSettings {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt
+
+  @@map("site_settings")
+}

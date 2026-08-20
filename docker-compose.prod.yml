@@ -1,0 +1,84 @@
+# Production stack: app + its own MySQL + Redis, all on a private network.
+# Only the app port is published, and only to localhost — Nginx on the host
+# is what actually faces the internet and terminates SSL (see DEPLOY.md).
+#
+# Usage on the server:
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# Reads variables (DB/Redis credentials, NEXT_PUBLIC_* build args, etc.)
+# from a ".env" file placed next to this file — copy .env.production.example
+# to .env there and fill in real values first.
+
+services:
+  app:
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_SERVER_IP: ${NEXT_PUBLIC_SERVER_IP}
+        NEXT_PUBLIC_STORE_URL: ${NEXT_PUBLIC_STORE_URL}
+        NEXT_PUBLIC_DISCORD_INVITE: ${NEXT_PUBLIC_DISCORD_INVITE}
+        NEXT_PUBLIC_DISCORD_SERVER_ID: ${NEXT_PUBLIC_DISCORD_SERVER_ID}
+    container_name: venrixmc-app
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql:3306/${MYSQL_DATABASE}
+      REDIS_URL: redis://redis:6379
+      REDIS_MOCK: "false"
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # One-off container for running Prisma migrations against the prod DB.
+  # Not started by `up`; deploy.sh runs it explicitly via `compose run`.
+  # Targets the "builder" stage (not the slim "runner") because that's the
+  # one with the Prisma CLI (a devDependency) still installed.
+  migrate:
+    build:
+      context: .
+      target: builder
+    env_file: .env
+    environment:
+      DATABASE_URL: mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql:3306/${MYSQL_DATABASE}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    command: npx prisma migrate deploy
+    profiles: ["tools"]
+
+  mysql:
+    image: mysql:8.0
+    container_name: venrixmc-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - venrixmc_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: venrixmc-redis
+    restart: unless-stopped
+    volumes:
+      - venrixmc_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  venrixmc_mysql_data:
+  venrixmc_redis_data:

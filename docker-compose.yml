@@ -1,0 +1,37 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: venrixmc-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: venrixmc
+      MYSQL_USER: venrix
+      MYSQL_PASSWORD: venrix
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3306:3306"
+    volumes:
+      - venrixmc_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: venrixmc-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - venrixmc_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  venrixmc_mysql_data:
+  venrixmc_redis_data:
