@@ -22,11 +22,11 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
-      DATABASE_URL: mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql:3306/${MYSQL_DATABASE}
+      DATABASE_URL: mysql://root:${MYSQL_ROOT_PASSWORD}@mysql:3306/${MYSQL_DATABASE}
       REDIS_URL: redis://redis:6379
       REDIS_MOCK: "false"
     ports:
-      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:3002:3002"
     depends_on:
       mysql:
         condition: service_healthy
@@ -43,7 +43,7 @@ services:
       target: builder
     env_file: .env
     environment:
-      DATABASE_URL: mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql:3306/${MYSQL_DATABASE}
+      DATABASE_URL: mysql://root:${MYSQL_ROOT_PASSWORD}@mysql:3306/${MYSQL_DATABASE}
     depends_on:
       mysql:
         condition: service_healthy

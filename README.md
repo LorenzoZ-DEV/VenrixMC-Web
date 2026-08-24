@@ -127,6 +127,37 @@ Poi valorizza almeno:
   nelle impostazioni OAuth2 il redirect `{APP_URL}/api/auth/discord/callback` (deve combaciare
   esattamente, es. `http://localhost:3000/api/auth/discord/callback` in sviluppo) e copia qui
   Client ID e Client Secret. Se vuoti, il pulsante "Collega con Discord" resta disattivato.
+- `DISCORD_BOT_TOKEN` — opzionale, abilita le **notifiche di esito** (vedi sotto). Se vuoto,
+  candidature e appeal continuano a funzionare ma nessuno riceve DM.
+
+### 3bis. Notifiche esito candidature e appeal (opzionale)
+
+Quando lo staff approva o rifiuta una candidatura o un ban appeal, il sito può mandare l'esito
+**in DM al giocatore** e **pubblicarlo in un canale** del Discord.
+
+L'OAuth2 (`DISCORD_CLIENT_ID`/`SECRET`) non basta: per scrivere a qualcuno serve un bot.
+
+1. Su [discord.com/developers/applications](https://discord.com/developers/applications) apri la
+   tua app → **Bot** → *Reset Token* e copia il token in `DISCORD_BOT_TOKEN`.
+2. Sempre nella scheda Bot, attiva **SERVER MEMBERS INTENT**: serve a risolvere l'username
+   scritto nel form (es. `steve`) nell'ID Discord reale.
+3. Invita il bot nel server con lo scope `bot` e i permessi *View Channels* + *Send Messages*
+   sul canale degli esiti.
+4. Vai su `/dashboard/settings` → **Notifiche Discord**: scegli il server dal menu (compaiono
+   solo quelli in cui il bot è entrato), il canale esiti candidature, quello degli appeal, e
+   attiva l'interruttore. Il pulsante **Test** scrive subito un messaggio di prova nel canale.
+
+Note:
+
+- Il DM parte solo se il giocatore è nel server Discord e ha i messaggi privati aperti. Quando
+  fallisce lo staff lo vede nel pannello e resta traccia in `AuditLog`
+  (`APPLY_NOTIFY_FAILED` / `APPEAL_NOTIFY_FAILED`); il messaggio nel canale viene pubblicato
+  comunque.
+- Se l'username non viene trovato, nel dettaglio della candidatura/appeal si può incollare a mano
+  il **Discord ID** e ridecidere. L'ID risolto viene salvato sulla riga e riusato dopo.
+- Le note staff degli appeal sono interne: finiscono nel DM solo se attivi l'apposita spunta.
+- L'esito parte una sola volta, al cambio effettivo di stato: riaprire o risalvare non rimanda
+  nulla.
 
 ### 4. Migrazioni Prisma su MySQL
 

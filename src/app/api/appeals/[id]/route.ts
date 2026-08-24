@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireApiRole } from "@/lib/auth";
 import { appealUpdateSchema } from "@/lib/validators";
 import { logAudit } from "@/lib/audit";
+import { notifyAppealDecision, describeOutcome, type NotifyOutcome } from "@/lib/discordNotify";
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const auth = await requireApiRole(Role.STAFF);
@@ -18,11 +19,15 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const existing = await prisma.appeal.findUnique({ where: { id: params.id } });
   if (!existing) return NextResponse.json({ error: "Non trovato" }, { status: 404 });
 
+  // An empty discordId means "leave it as is", not "clear it".
+  const { discordId: overrideId, ...updates } = parsed.data;
+
   const appeal = await prisma.appeal.update({
     where: { id: params.id },
     data: {
-      ...parsed.data,
-      ...(parsed.data.status ? { reviewedById: auth.session.userId } : {}),
+      ...updates,
+      ...(overrideId ? { discordId: overrideId } : {}),
+      ...(updates.status ? { reviewedById: auth.session.userId } : {}),
     },
   });
 
@@ -32,7 +37,40 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     `Appeal ${appeal.minecraftName} → ${appeal.status}`
   );
 
-  return NextResponse.json({ appeal });
+  // Only announce a real decision, and only when it actually changed — saving
+  // staff notes on an already-decided appeal must not re-DM the player.
+  let notify: NotifyOutcome | null = null;
+  const status = appeal.status;
+  const decided = status === "APPROVED" || status === "DENIED";
+
+  if (decided && status !== existing.status) {
+    notify = await notifyAppealDecision({
+      minecraftName: appeal.minecraftName,
+      discord: appeal.discord,
+      discordId: appeal.discordId,
+      banId: appeal.banId,
+      staffNotes: appeal.staffNotes,
+      status,
+      reviewerName: auth.session.username,
+    });
+
+    if (notify.discordId && notify.discordId !== appeal.discordId) {
+      await prisma.appeal.update({
+        where: { id: params.id },
+        data: { discordId: notify.discordId },
+      });
+    }
+
+    if (notify.dm !== "sent" || notify.channel === "error") {
+      await logAudit(
+        auth.session.userId,
+        "APPEAL_NOTIFY_FAILED",
+        `Notifica Discord per ${appeal.minecraftName}: ${describeOutcome(notify)}`
+      );
+    }
+  }
+
+  return NextResponse.json({ appeal, notify });
 }
 
 // DELETE — Admin+ only, removes an appeal from the site entirely.

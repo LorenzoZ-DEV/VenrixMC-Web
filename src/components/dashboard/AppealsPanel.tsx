@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { Badge, statusTone } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
+import { NotifyNotice, noticeFromOutcome, type Notice } from "@/components/dashboard/NotifyNotice";
 
 type Appeal = {
   id: string;
@@ -11,6 +12,8 @@ type Appeal = {
   uuid: string | null;
   banId: string | null;
   banReason: string | null;
+  discord: string | null;
+  discordId: string | null;
   message: string;
   status: "PENDING" | "APPROVED" | "DENIED";
   staffNotes: string | null;
@@ -47,6 +50,8 @@ export function AppealsPanel({ canDelete }: { canDelete: boolean }) {
   const [loading, setLoading] = useState(true);
   const [active, setActive] = useState<Appeal | null>(null);
   const [notes, setNotes] = useState("");
+  const [discordId, setDiscordId] = useState("");
+  const [notice, setNotice] = useState<Notice | null>(null);
   const [liteBans, setLiteBans] = useState<{ configured: boolean; records: LiteBansRecord[] } | null>(null);
 
   const load = useCallback(async () => {
@@ -69,11 +74,23 @@ export function AppealsPanel({ canDelete }: { canDelete: boolean }) {
   }, [load]);
 
   async function updateStatus(id: string, newStatus: Appeal["status"], staffNotes?: string) {
-    await fetch(`/api/appeals/${id}`, {
+    const res = await fetch(`/api/appeals/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: newStatus, ...(staffNotes !== undefined ? { staffNotes } : {}) }),
+      body: JSON.stringify({
+        status: newStatus,
+        ...(staffNotes !== undefined ? { staffNotes } : {}),
+        ...(discordId ? { discordId } : {}),
+      }),
     });
+
+    const data = res.ok ? await res.json().catch(() => null) : null;
+    setNotice(
+      res.ok
+        ? noticeFromOutcome(data?.notify ?? null)
+        : { tone: "warn", text: "Aggiornamento non riuscito." }
+    );
+
     setActive(null);
     load();
   }
@@ -88,6 +105,8 @@ export function AppealsPanel({ canDelete }: { canDelete: boolean }) {
   function openAppeal(appeal: Appeal) {
     setActive(appeal);
     setNotes(appeal.staffNotes ?? "");
+    setDiscordId(appeal.discordId ?? "");
+    setNotice(null);
     setLiteBans(null);
 
     // Prefer an exact lookup by the ban ID the player gave us; fall back to
@@ -103,6 +122,8 @@ export function AppealsPanel({ canDelete }: { canDelete: boolean }) {
 
   return (
     <div>
+      <NotifyNotice notice={notice} />
+
       <div className="mb-6 flex flex-wrap items-end gap-3">
         <div>
           <label className="venrix-label">Stato</label>
@@ -272,6 +293,27 @@ export function AppealsPanel({ canDelete }: { canDelete: boolean }) {
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
               />
+            </div>
+
+            <div>
+              <label className="venrix-label" htmlFor="appealDiscordId">
+                Discord ID (opzionale)
+              </label>
+              <input
+                id="appealDiscordId"
+                className="venrix-input font-mono text-xs"
+                placeholder={
+                  active.discord
+                    ? `Lascia vuoto: lo cerchiamo da "${active.discord}"`
+                    : "Il giocatore non ha indicato un Discord"
+                }
+                value={discordId}
+                onChange={(e) => setDiscordId(e.target.value.trim())}
+              />
+              <p className="mt-1 text-xs text-slate-500">
+                Compilalo per mandare comunque l'esito in DM: tasto destro sull'utente in Discord
+                → “Copia ID utente”.
+              </p>
             </div>
             <div className="flex flex-wrap gap-2">
               <Button variant="primary" onClick={() => updateStatus(active.id, "APPROVED", notes)}>

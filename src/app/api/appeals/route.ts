@@ -74,6 +74,7 @@ export async function POST(req: NextRequest) {
         uuid: parsed.data.uuid || null,
         banId: parsed.data.banId || null,
         banReason: parsed.data.banReason || null,
+        discord: parsed.data.discord || null,
         message: parsed.data.message,
         ip,
       },

@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireApiRole } from "@/lib/auth";
-import { settingsUpdateSchema } from "@/lib/validators";
+import { settingsUpdateSchema, discordNotifySchema } from "@/lib/validators";
 import { invalidate } from "@/lib/cache";
 import { keys } from "@/lib/redis";
 import { logAudit } from "@/lib/audit";
+import { DISCORD_NOTIFY_KEY } from "@/lib/discordNotify";
 
 // Generic key/value settings store (site colors, CTA text, social links,
 // toggles for public sections, ...) — used by the Developer live-edit panel.
@@ -25,6 +26,26 @@ export async function PUT(req: NextRequest) {
   const parsed = settingsUpdateSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Dati non validi" }, { status: 400 });
+  }
+
+  // Most settings are opaque blobs, but the Discord notification config drives
+  // real API calls — reject malformed guild/channel IDs at the door.
+  if (parsed.data.key === DISCORD_NOTIFY_KEY) {
+    const raw = ((): unknown => {
+      try {
+        return JSON.parse(parsed.data.value);
+      } catch {
+        return null;
+      }
+    })();
+
+    const config = discordNotifySchema.safeParse(raw);
+    if (!config.success) {
+      return NextResponse.json(
+        { error: config.error.issues[0]?.message ?? "Configurazione Discord non valida" },
+        { status: 400 }
+      );
+    }
   }
 
   const setting = await prisma.siteSettings.upsert({

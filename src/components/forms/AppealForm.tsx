@@ -19,6 +19,7 @@ export function AppealForm() {
       uuid: form.get("uuid"),
       banId: form.get("banId"),
       banReason: form.get("banReason"),
+      discord: form.get("discord"),
       message: form.get("message"),
     };
 
@@ -107,6 +108,23 @@ export function AppealForm() {
         Il Ban ID è visibile nel messaggio di ban in gioco o su Discord (es. "F06494") e aiuta
         lo staff a trovare subito la sanzione corretta.
       </p>
+
+      <div>
+        <label className="venrix-label" htmlFor="discord">
+          Discord (opzionale)
+        </label>
+        <input
+          id="discord"
+          name="discord"
+          maxLength={40}
+          className="venrix-input"
+          placeholder="Es. steve oppure 123456789012345678"
+        />
+        <p className="mt-1 text-xs text-slate-500">
+          Se entri nel nostro Discord e lasci qui il tuo username, ti mandiamo l'esito
+          direttamente in DM.
+        </p>
+      </div>
 
       <div>
         <label className="venrix-label" htmlFor="message">

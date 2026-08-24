@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { Badge, statusTone } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
+import { NotifyNotice, noticeFromOutcome, type Notice } from "@/components/dashboard/NotifyNotice";
 
 type WizardAnswer = { section: string; question: string; answer: string };
 
@@ -19,6 +20,7 @@ type Application = {
   id: string;
   minecraftName: string;
   discord: string;
+  discordId: string | null;
   age: number;
   experience: string;
   roles: string;
@@ -50,6 +52,8 @@ export function ApplicationsPanel() {
   const [player, setPlayer] = useState("");
   const [loading, setLoading] = useState(true);
   const [active, setActive] = useState<Application | null>(null);
+  const [discordId, setDiscordId] = useState("");
+  const [notice, setNotice] = useState<Notice | null>(null);
   const [liteBans, setLiteBans] = useState<{ configured: boolean; records: LiteBansRecord[] } | null>(null);
 
   const load = useCallback(async () => {
@@ -72,17 +76,38 @@ export function ApplicationsPanel() {
   }, [load]);
 
   async function updateStatus(id: string, newStatus: Application["status"]) {
-    await fetch(`/api/staff-apply/${id}`, {
+    const res = await fetch(`/api/staff-apply/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: newStatus }),
+      body: JSON.stringify({ status: newStatus, ...(discordId ? { discordId } : {}) }),
     });
+
+    const data = res.ok ? await res.json().catch(() => null) : null;
+    setNotice(
+      res.ok
+        ? noticeFromOutcome(data?.notify ?? null)
+        : { tone: "warn", text: "Aggiornamento non riuscito." }
+    );
+
     setActive(null);
     load();
   }
 
+  function openApplication(app: Application) {
+    setActive(app);
+    setDiscordId(app.discordId ?? "");
+    setNotice(null);
+    setLiteBans(null);
+
+    fetch(`/api/litebans?player=${encodeURIComponent(app.minecraftName)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => data && setLiteBans(data));
+  }
+
   return (
     <div>
+      <NotifyNotice notice={notice} />
+
       <div className="mb-6 flex flex-wrap items-end gap-3">
         <div>
           <label className="venrix-label">Stato</label>
@@ -150,13 +175,7 @@ export function ApplicationsPanel() {
                   <td className="px-4 py-3 text-right">
                     <button
                       className="text-sm font-semibold text-venrix-300 hover:text-venrix-200"
-                      onClick={() => {
-                        setActive(app);
-                        setLiteBans(null);
-                        fetch(`/api/litebans?player=${encodeURIComponent(app.minecraftName)}`)
-                          .then((r) => (r.ok ? r.json() : null))
-                          .then((data) => data && setLiteBans(data));
-                      }}
+                      onClick={() => openApplication(app)}
                     >
                       Vedi dettagli
                     </button>
@@ -254,6 +273,23 @@ export function ApplicationsPanel() {
                 )}
               </div>
             )}
+            <div>
+              <label className="venrix-label" htmlFor="applyDiscordId">
+                Discord ID (opzionale)
+              </label>
+              <input
+                id="applyDiscordId"
+                className="venrix-input font-mono text-xs"
+                placeholder={`Lascia vuoto: lo cerchiamo da "${active.discord}"`}
+                value={discordId}
+                onChange={(e) => setDiscordId(e.target.value.trim())}
+              />
+              <p className="mt-1 text-xs text-slate-500">
+                Serve solo se il DM non parte perché l'username non viene trovato nel server:
+                tasto destro sull'utente in Discord → “Copia ID utente”.
+              </p>
+            </div>
+
             <div className="flex flex-wrap gap-2">
               <Button variant="primary" onClick={() => updateStatus(active.id, "APPROVED")}>
                 Approva

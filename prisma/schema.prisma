@@ -72,6 +72,10 @@ model Appeal {
   banId         String?      @db.VarChar(20)
   banReason     String?      @db.VarChar(500)
   message       String       @db.Text
+  // Discord handle typed by the player (optional) and the snowflake it was
+  // resolved to — cached so we only hit the member-search endpoint once.
+  discord       String?      @db.VarChar(40)
+  discordId     String?      @db.VarChar(20)
   status        AppealStatus @default(PENDING)
   staffNotes    String?      @db.Text
   ip            String?
@@ -89,6 +93,8 @@ model StaffApply {
   id            String      @id @default(cuid())
   minecraftName String
   discord       String
+  // Snowflake resolved from `discord` (or pasted by staff) — see lib/discordBot.ts.
+  discordId     String?     @db.VarChar(20)
   age           Int
   experience    String      @db.Text
   roles         String

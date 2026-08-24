@@ -1,5 +1,11 @@
 import { z } from "zod";
 
+/** A raw Discord snowflake — staff can paste one to force who gets the DM. */
+export const discordIdSchema = z
+  .string()
+  .trim()
+  .regex(/^\d{17,20}$/, "Discord ID non valido");
+
 export const appealSchema = z.object({
   minecraftName: z
     .string()
@@ -12,6 +18,8 @@ export const appealSchema = z.object({
   // "F06494"), not a plain number — see lib/litebans.ts parseBanDisplayId.
   banId: z.string().trim().max(20).optional().or(z.literal("")),
   banReason: z.string().trim().max(500).optional().or(z.literal("")),
+  // Optional: lets us DM the player the outcome (see lib/discordNotify.ts).
+  discord: z.string().trim().max(40).optional().or(z.literal("")),
   message: z.string().trim().min(20, "Spiega la tua situazione (min 20 caratteri)").max(3000),
 });
 export type AppealInput = z.infer<typeof appealSchema>;
@@ -19,6 +27,7 @@ export type AppealInput = z.infer<typeof appealSchema>;
 export const appealUpdateSchema = z.object({
   status: z.enum(["PENDING", "APPROVED", "DENIED"]).optional(),
   staffNotes: z.string().trim().max(2000).optional(),
+  discordId: discordIdSchema.optional().or(z.literal("")),
 });
 
 export const staffApplyAnswerSchema = z.object({
@@ -58,6 +67,17 @@ export type StaffApplyAnswer = z.infer<typeof staffApplyAnswerSchema>;
 
 export const staffApplyUpdateSchema = z.object({
   status: z.enum(["PENDING", "APPROVED", "REJECTED"]).optional(),
+  discordId: discordIdSchema.optional().or(z.literal("")),
+});
+
+export const discordNotifySchema = z.object({
+  enabled: z.boolean(),
+  guildId: z.string().trim().regex(/^\d{17,20}$/).or(z.literal("")),
+  applicationsChannelId: z.string().trim().regex(/^\d{17,20}$/).or(z.literal("")),
+  appealsChannelId: z.string().trim().regex(/^\d{17,20}$/).or(z.literal("")),
+  dmApplications: z.boolean(),
+  dmAppeals: z.boolean(),
+  includeStaffNotes: z.boolean(),
 });
 
 export const staffPositionSchema = z.object({
