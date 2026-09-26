@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Badge, statusTone } from "@/components/ui/Badge";
+import { Badge, statusLabel, statusTone } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { NotifyNotice, noticeFromOutcome, type Notice } from "@/components/dashboard/NotifyNotice";
@@ -28,6 +28,8 @@ type Application = {
   answers: WizardAnswer[] | null;
   status: "PENDING" | "APPROVED" | "REJECTED";
   createdAt: string;
+  userId: string | null;
+  user: { username: string } | null;
   reviewedBy: { username: string } | null;
 };
 
@@ -93,6 +95,17 @@ export function ApplicationsPanel() {
     load();
   }
 
+  async function removeCooldown(app: Application) {
+    const res = await fetch(`/api/staff-apply/${app.id}/unlock`, { method: "POST" });
+    const data = await res.json().catch(() => null);
+    setNotice(
+      res.ok
+        ? { tone: "ok", text: `${app.minecraftName} può inviare subito una nuova candidatura.` }
+        : { tone: "warn", text: data?.error ?? "Impossibile rimuovere la limitazione." }
+    );
+    setActive(null);
+  }
+
   function openApplication(app: Application) {
     setActive(app);
     setDiscordId(app.discordId ?? "");
@@ -121,8 +134,8 @@ export function ApplicationsPanel() {
           >
             <option value="">Tutti</option>
             <option value="PENDING">In attesa</option>
-            <option value="APPROVED">Approvate</option>
-            <option value="REJECTED">Rifiutate</option>
+            <option value="APPROVED">Accettate</option>
+            <option value="REJECTED">Respinte</option>
           </select>
         </div>
         <div>
@@ -170,11 +183,11 @@ export function ApplicationsPanel() {
                   <td className="px-4 py-3 text-slate-400">{app.discord}</td>
                   <td className="px-4 py-3 text-slate-400">{app.roles}</td>
                   <td className="px-4 py-3">
-                    <Badge tone={statusTone(app.status)}>{app.status}</Badge>
+                    <Badge tone={statusTone(app.status)}>{statusLabel(app.status)}</Badge>
                   </td>
                   <td className="px-4 py-3 text-right">
                     <button
-                      className="text-sm font-semibold text-venrix-300 hover:text-venrix-200"
+                      className="text-sm font-semibold text-venrix-300 hover:underline"
                       onClick={() => openApplication(app)}
                     >
                       Vedi dettagli
@@ -194,7 +207,7 @@ export function ApplicationsPanel() {
               key={p}
               onClick={() => setPage(p)}
               className={`h-9 w-9 rounded-lg text-sm ${
-                p === page ? "bg-venrix-600 text-white" : "text-slate-300 hover:bg-white/10"
+                p === page ? "bg-venrix-600 text-onbrand" : "text-slate-300 hover:bg-white/10"
               }`}
             >
               {p}
@@ -228,7 +241,7 @@ export function ApplicationsPanel() {
               <div className="space-y-4">
                 {groupBySection(active.answers).map((group) => (
                   <div key={group.section}>
-                    <p className="font-display text-[10px] uppercase tracking-wide text-venrix-400">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-venrix-200">
                       {group.section}
                     </p>
                     <div className="mt-2 space-y-3">
@@ -266,7 +279,7 @@ export function ApplicationsPanel() {
                         <span className="font-semibold uppercase text-venrix-300">
                           #{r.id} · {r.type}
                         </span>{" "}
-                        — {r.reason ?? "Nessun motivo indicato"} (staff: {r.staff ?? "—"})
+                        {r.reason ?? "Nessun motivo indicato"} (staff: {r.staff ?? "-"})
                       </li>
                     ))}
                   </ul>
@@ -298,6 +311,20 @@ export function ApplicationsPanel() {
                 Rifiuta
               </Button>
             </div>
+
+            {active.userId && (
+              <div className="border-t border-white/10 pt-4">
+                <p className="venrix-label">Limite di 14 giorni</p>
+                <p className="mb-3 text-xs text-slate-500">
+                  Account: <span className="text-slate-300">{active.user?.username ?? "-"}</span>.
+                  Rimuovendo la limitazione il candidato può inviare subito una nuova candidatura,
+                  per qualsiasi posizione.
+                </p>
+                <Button variant="secondary" onClick={() => removeCooldown(active)}>
+                  Rimuovi limitazione
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </Modal>

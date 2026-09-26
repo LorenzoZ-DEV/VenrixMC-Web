@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
-import { IconCheck, IconChevronLeft, PixelFrame } from "@/components/icons";
+import { IconCheck, IconChevronLeft, IconShield, PixelFrame } from "@/components/icons";
 import { wizardTotalSteps, type WizardField } from "@/lib/wizards/types";
 import { WIZARD_REGISTRY, type WizardId } from "@/lib/wizards/registry";
 
@@ -74,6 +74,12 @@ export function StaffWizard({ wizardId }: { wizardId: WizardId }) {
   const [values, setValues] = useState<Values>({});
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
+  /*
+   * Motivo del blocco per blacklist. Sta a parte da `error` perche' non e'
+   * un errore da correggere e riprovare: quando arriva, il modulo non serve
+   * piu' e lascia il posto all'avviso.
+   */
+  const [blacklistReason, setBlacklistReason] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
 
   const isIntro = step === 0;
@@ -148,6 +154,11 @@ export function StaffWizard({ wizardId }: { wizardId: WizardId }) {
       const data = await res.json();
 
       if (!res.ok) {
+        if (data.blacklisted) {
+          setBlacklistReason(typeof data.reason === "string" ? data.reason : "");
+          setStatus("error");
+          return;
+        }
         setError(data.error ?? "Si è verificato un errore, riprova più tardi.");
         setStatus("error");
         return;
@@ -160,18 +171,48 @@ export function StaffWizard({ wizardId }: { wizardId: WizardId }) {
     }
   }
 
-  if (status === "success") {
+  /*
+   * Blacklist: si sostituisce il modulo, non si aggiunge una riga rossa in
+   * fondo. Ricompilare non cambierebbe l'esito, quindi tenere i campi a
+   * video sarebbe un invito a perdere tempo.
+   */
+  if (blacklistReason !== null) {
     return (
       <div className="venrix-card flex flex-col items-center gap-3 p-8 text-center">
-        <PixelFrame className="h-12 w-12 text-emerald-400">
-          <IconCheck className="h-6 w-6" />
+        <PixelFrame className="h-12 w-12 text-red-600 dark:text-red-400">
+          <IconShield className="h-6 w-6" />
         </PixelFrame>
-        <p className="font-display text-xs text-emerald-400">Candidatura inviata</p>
-        <p className="text-sm text-slate-400">
-          Grazie per il tuo interesse! Il nostro Head Staff la esaminerà a breve.
+        <p className="font-display text-base font-semibold text-red-600 dark:text-red-400">
+          Candidatura bloccata per blacklist staff
+        </p>
+        {blacklistReason && (
+          <div className="mt-1 w-full max-w-md rounded-lg border border-red-500/25 bg-red-500/10 p-4 text-left">
+            <p className="mono-label text-red-600 dark:text-red-400">Motivo</p>
+            <p className="mt-1.5 whitespace-pre-line text-sm text-slate-200">{blacklistReason}</p>
+          </div>
+        )}
+        <p className="mt-1 max-w-md text-[13px] text-slate-500">
+          Se pensi che sia un errore, parlane con lo staff sul Discord del server.
         </p>
         <Link href="/staff-apply" className="venrix-btn-secondary mt-2">
           Torna alle posizioni
+        </Link>
+      </div>
+    );
+  }
+
+  if (status === "success") {
+    return (
+      <div className="venrix-card flex flex-col items-center gap-3 p-8 text-center">
+        <PixelFrame className="h-12 w-12 text-emerald-600 dark:text-emerald-400">
+          <IconCheck className="h-6 w-6" />
+        </PixelFrame>
+        <p className="font-display text-base font-semibold text-emerald-600 dark:text-emerald-400">Candidatura inviata</p>
+        <p className="text-sm text-slate-400">
+          Grazie per il tuo interesse! Il nostro Head Staff la esaminerà a breve.
+        </p>
+        <Link href="/dashboard/richieste" className="venrix-btn-secondary mt-2">
+          Segui lo stato nella tua dashboard
         </Link>
       </div>
     );
@@ -187,7 +228,7 @@ export function StaffWizard({ wizardId }: { wizardId: WizardId }) {
           <span key={i} className={`h-1.5 flex-1 ${i <= step ? "bg-venrix-500" : "bg-white/10"}`} />
         ))}
       </div>
-      <p className="mt-3 font-display text-[10px] uppercase tracking-wide text-venrix-400">
+      <p className="mt-3 text-[11px] font-bold uppercase tracking-[0.12em] text-venrix-200">
         Sezione {step + 1} di {totalSteps}
       </p>
 
@@ -206,12 +247,12 @@ export function StaffWizard({ wizardId }: { wizardId: WizardId }) {
             <Field key={f.id} field={f} value={values[f.id] ?? ""} onChange={(v) => setValue(f.id, v)} />
           ))}
           {touched && !currentSectionValid() && (
-            <p className="text-sm text-red-400">Compila tutti i campi richiesti prima di continuare.</p>
+            <p className="text-sm text-red-600 dark:text-red-400">Compila tutti i campi richiesti prima di continuare.</p>
           )}
         </div>
       )}
 
-      {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
+      {error && <p className="mt-4 text-sm text-red-600 dark:text-red-400">{error}</p>}
 
       <div className="mt-8 flex items-center justify-between gap-3">
         {step > 0 ? (

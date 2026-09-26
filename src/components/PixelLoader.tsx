@@ -11,7 +11,7 @@ export function PixelLoader({ label }: { label?: string }) {
         ))}
       </div>
       {label && (
-        <p className="font-display text-[10px] uppercase tracking-wide text-slate-400">{label}</p>
+        <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400">{label}</p>
       )}
     </div>
   );

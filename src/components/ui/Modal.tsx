@@ -27,12 +27,12 @@ export function Modal({
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
         onClick={onClose}
       />
       <div className="venrix-card relative z-10 max-h-[90vh] w-full max-w-lg overflow-y-auto p-6">
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="font-display text-xs text-white">{title}</h3>
+          <h3 className="font-display text-base font-semibold text-white">{title}</h3>
           <button
             onClick={onClose}
             className="p-1.5 text-slate-400 hover:bg-white/10 hover:text-white"

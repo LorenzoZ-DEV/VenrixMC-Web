@@ -31,3 +31,8 @@ next-env.d.ts
 # deploy
 /deploy/deploy.config.sh
 .env.production
+
+# skill di editor/agent installate in locale
+/.agents
+/.claude
+/skills-lock.json

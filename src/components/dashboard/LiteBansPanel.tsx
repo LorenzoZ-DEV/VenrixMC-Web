@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { Badge } from "@/components/ui/Badge";
+import { ConsoleBadge } from "@/components/ConsoleBadge";
+import { isConsoleName } from "@/lib/minecraft";
 import { PixelFrame, IconSearch } from "@/components/icons";
 
 type LiteBansRecord = {
@@ -26,7 +28,7 @@ const TYPE_TONE: Record<LiteBansRecord["type"], "denied" | "pending" | "neutral"
 
 function formatStatus(r: LiteBansRecord) {
   if (r.removedBy) return `Rimossa da ${r.removedBy}`;
-  if (r.until === null) return r.type === "kick" ? "—" : "Permanente";
+  if (r.until === null) return r.type === "kick" ? "-" : "Permanente";
   if (r.until <= Date.now()) return "Scaduta";
   return r.active ? "Attiva" : "Non attiva";
 }
@@ -74,7 +76,7 @@ export function LiteBansPanel() {
         <PixelFrame className="h-12 w-12 text-slate-500">
           <IconSearch className="h-6 w-6" />
         </PixelFrame>
-        <p className="font-display text-xs text-white">LiteBans non configurato</p>
+        <p className="font-display text-base font-semibold text-white">LiteBans non configurato</p>
         <p className="max-w-sm text-sm text-slate-400">
           Imposta <code className="text-venrix-300">LITEBANS_DATABASE_URL</code> nel file{" "}
           <code className="text-venrix-300">.env</code> per collegare il database del plugin
@@ -190,8 +192,29 @@ export function LiteBansPanel() {
                     <Badge tone={TYPE_TONE[r.type]}>{r.type}</Badge>
                   </td>
                   <td className="px-4 py-3 font-medium text-white">{r.player}</td>
-                  <td className="px-4 py-3 text-slate-400">{r.reason ?? "—"}</td>
-                  <td className="px-4 py-3 text-slate-400">{r.staff ?? "—"}</td>
+                  <td className="px-4 py-3 text-slate-400">{r.reason ?? "-"}</td>
+                  <td className="px-4 py-3 text-slate-400">
+                    {r.staff ? (
+                      isConsoleName(r.staff) ? (
+                        <ConsoleBadge />
+                      ) : (
+                        <span className="inline-flex items-center gap-2">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={`https://mc-heads.net/avatar/${encodeURIComponent(r.staff)}/48`}
+                          alt=""
+                          width={24}
+                          height={24}
+                          loading="lazy"
+                          className="h-6 w-6 rounded-sm"
+                        />
+                        {r.staff}
+                        </span>
+                      )
+                    ) : (
+                      "-"
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-slate-400">
                     {new Date(r.time).toLocaleDateString("it-IT")}
                   </td>
@@ -210,7 +233,7 @@ export function LiteBansPanel() {
               key={p}
               onClick={() => setPage(p)}
               className={`h-9 w-9 rounded-lg text-sm ${
-                p === page ? "bg-venrix-600 text-white" : "text-slate-300 hover:bg-white/10"
+                p === page ? "bg-venrix-600 text-onbrand" : "text-slate-300 hover:bg-white/10"
               }`}
             >
               {p}

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { hasRole } from "@/lib/auth";
-import { Badge, statusTone } from "@/components/ui/Badge";
+import { Badge, statusLabel, statusTone } from "@/components/ui/Badge";
 import { IconBug, PixelFrame } from "@/components/icons";
 
 const MOCK_APPLICATIONS = [
@@ -20,6 +20,9 @@ const MOCK_STATS = { users: 12, news: 8, appealsPending: 3, appliesPending: 2 };
 export default async function DebugPage() {
   const session = await getSession();
   if (!session) redirect("/login");
+  // Una sessione non basta piu: i membri registrati dal forum sono MEMBER e
+  // qui non hanno niente da fare.
+  if (!hasRole(session, "STAFF")) redirect("/forum");
 
   const canSeeAdmin = hasRole(session, "DEVELOPER");
 
@@ -43,7 +46,7 @@ export default async function DebugPage() {
       </div>
 
       <section className="venrix-card p-6">
-        <h2 className="mb-4 font-display text-xs text-white">Anteprima Head Staff — Candidature</h2>
+        <h2 className="mb-4 font-display text-base font-semibold text-white">Anteprima Head Staff: Candidature</h2>
         <table className="w-full text-left text-sm">
           <thead className="border-b border-white/10 text-xs uppercase text-slate-400">
             <tr>
@@ -60,7 +63,7 @@ export default async function DebugPage() {
                 <td className="px-4 py-3 text-slate-400">{app.discord}</td>
                 <td className="px-4 py-3 text-slate-400">{app.roles}</td>
                 <td className="px-4 py-3">
-                  <Badge tone={statusTone(app.status)}>{app.status}</Badge>
+                  <Badge tone={statusTone(app.status)}>{statusLabel(app.status)}</Badge>
                 </td>
               </tr>
             ))}
@@ -71,10 +74,10 @@ export default async function DebugPage() {
       {canSeeAdmin && (
         <>
           <section className="venrix-card mt-6 p-6">
-            <h2 className="mb-4 font-display text-xs text-white">Anteprima Admin — Statistiche</h2>
+            <h2 className="mb-4 font-display text-base font-semibold text-white">Anteprima Admin: Statistiche</h2>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
               {Object.entries(MOCK_STATS).map(([key, value]) => (
-                <div key={key} className="pixel-corners-sm border-2 border-black/30 bg-ink-800 p-4 text-center">
+                <div key={key} className="pixel-corners-sm border border-white/10 bg-ink-800 p-4 text-center">
                   <p className="font-display text-lg text-white">{value}</p>
                   <p className="mt-2 text-xs uppercase text-slate-500">{key}</p>
                 </div>
@@ -83,7 +86,7 @@ export default async function DebugPage() {
           </section>
 
           <section className="venrix-card mt-6 p-6">
-            <h2 className="mb-4 font-display text-xs text-white">Anteprima Admin — Utenti</h2>
+            <h2 className="mb-4 font-display text-base font-semibold text-white">Anteprima Admin: Utenti</h2>
             <table className="w-full text-left text-sm">
               <thead className="border-b border-white/10 text-xs uppercase text-slate-400">
                 <tr>

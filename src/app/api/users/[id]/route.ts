@@ -28,7 +28,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       ...rest,
       ...(password ? { passwordHash: await bcrypt.hash(password, 12) } : {}),
     },
-    select: { id: true, username: true, email: true, role: true, active: true, createdAt: true },
+    select: { id: true, username: true, email: true, role: true, discordRank: true, active: true, createdAt: true },
   });
 
   // Role change / deactivation should invalidate any live session immediately.

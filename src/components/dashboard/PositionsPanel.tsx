@@ -23,6 +23,7 @@ const WIZARD_OPTIONS = [
   { value: "", label: "Nessuno (form generico)" },
   { value: "helper-supporter", label: "Helper Supporter" },
   { value: "helper-ss", label: "Helper SS" },
+  { value: "builder", label: "Builder" },
 ];
 
 const emptyForm = {
@@ -194,7 +195,7 @@ export function PositionsPanel() {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-slate-400">
-                      {p.wizardId ?? <span className="text-slate-600">—</span>}
+                      {p.wizardId ?? <span className="text-slate-600">-</span>}
                     </td>
                     <td className="px-4 py-3">
                       <input
@@ -202,7 +203,7 @@ export function PositionsPanel() {
                         min={0}
                         max={99}
                         defaultValue={p.slots}
-                        className="w-16 border-2 border-white/10 bg-ink-800 px-2 py-1 text-sm text-slate-200"
+                        className="w-16 border border-white/10 bg-ink-800 px-2 py-1 text-sm text-slate-200"
                         onBlur={(e) => updateSlots(p, Number(e.target.value))}
                       />
                     </td>
@@ -215,13 +216,13 @@ export function PositionsPanel() {
                     </td>
                     <td className="px-4 py-3 text-right space-x-3">
                       <button
-                        className="text-sm font-semibold text-venrix-300 hover:text-venrix-200"
+                        className="text-sm font-semibold text-venrix-300 hover:underline"
                         onClick={() => openEdit(p)}
                       >
                         Modifica
                       </button>
                       <button
-                        className="text-sm font-semibold text-red-400 hover:text-red-300"
+                        className="text-sm font-semibold text-red-600 dark:text-red-400 hover:text-red-300"
                         onClick={() => remove(p)}
                       >
                         Elimina
@@ -342,7 +343,7 @@ export function PositionsPanel() {
             Posizione aperta
           </label>
 
-          {error && <p className="text-sm text-red-400">{error}</p>}
+          {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
 
           <Button onClick={save} className="w-full">
             Salva

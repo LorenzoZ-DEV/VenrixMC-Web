@@ -3,7 +3,7 @@ import { NewsCard } from "@/components/NewsCard";
 import { Pagination } from "@/components/Pagination";
 import { getNewsPage } from "@/lib/news";
 
-export const metadata: Metadata = { title: "News — VenrixMC" };
+export const metadata: Metadata = { title: "News · VenrixMC" };
 export const dynamic = "force-dynamic";
 
 export default async function NewsListPage({

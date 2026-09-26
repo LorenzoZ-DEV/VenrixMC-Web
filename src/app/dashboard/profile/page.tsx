@@ -1,12 +1,17 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
+import { hasRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isDiscordOAuthConfigured } from "@/lib/discordOAuth";
 import { ProfileForm } from "@/components/dashboard/ProfileForm";
 
+import { PageHeader } from "@/components/dashboard/PageHeader";
+
 export default async function ProfilePage() {
   const session = await getSession();
   if (!session) redirect("/login");
+  // I membri non hanno credenziali da gestire qui: il loro profilo e quello del forum.
+  if (!hasRole(session, "STAFF")) redirect("/forum/impostazioni");
 
   const user = await prisma.user.findUnique({
     where: { id: session.userId },
@@ -24,11 +29,11 @@ export default async function ProfilePage() {
 
   return (
     <div>
-      <h1 className="font-display text-lg text-white">Il mio profilo</h1>
-      <p className="mt-2 text-slate-400">
-        Gestisci le tue credenziali e collega il tuo account Discord.
-      </p>
-      <div className="mt-6">
+      <PageHeader
+        title="Il mio profilo"
+        description="Gestisci le tue credenziali e collega il tuo account Discord."
+      />
+      <div>
         <ProfileForm user={user} discordConfigured={isDiscordOAuthConfigured()} />
       </div>
     </div>

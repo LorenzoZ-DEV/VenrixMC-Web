@@ -1,14 +1,28 @@
-import { requireDashboardRole } from "@/components/dashboard/RoleGate";
+import { redirect } from "next/navigation";
+import { getSession } from "@/lib/session";
+import { hasRole } from "@/lib/auth";
+import { applicationScope } from "@/lib/roles";
 import { ApplicationsPanel } from "@/components/dashboard/ApplicationsPanel";
 
+import { PageHeader } from "@/components/dashboard/PageHeader";
+
 export default async function ApplicationsDashboardPage() {
-  await requireDashboardRole("HEAD");
+  // Head Staff+ vedono tutte le candidature, il Capo Builder solo le Builder:
+  // il filtro vero lo applica l'API, qui cambia solo il titolo.
+  const session = await getSession();
+  if (!session) redirect("/login");
+  if (!applicationScope(session.role)) {
+    redirect(hasRole(session, "STAFF") ? "/dashboard" : "/dashboard/richieste");
+  }
+  const builderOnly = session.role === "BUILDER";
 
   return (
     <div>
-      <h1 className="font-display text-lg text-white">Candidature Staff</h1>
-      <p className="mt-1 text-slate-400">Rivedi e approva le candidature per lo staff team.</p>
-      <div className="mt-6">
+      <PageHeader
+        title={builderOnly ? "Candidature Builder" : "Candidature Staff"}
+        description={builderOnly ? "Rivedi e approva le candidature per il ruolo Builder." : "Rivedi e approva le candidature per lo staff team."}
+      />
+      <div>
         <ApplicationsPanel />
       </div>
     </div>

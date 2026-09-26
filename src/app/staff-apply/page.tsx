@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
 import { StaffApplyForm } from "@/components/forms/StaffApplyForm";
+import { ApplyGateNotice } from "@/components/forms/ApplyGateNotice";
+import { SanctionsWarning } from "@/components/forms/SanctionsWarning";
 import { getStaffPositions } from "@/lib/staffPositions";
+import { getApplyGate } from "@/lib/applyCooldown";
 
-export const metadata: Metadata = { title: "Candidatura Staff — VenrixMC" };
+export const metadata: Metadata = { title: "Candidatura Staff · VenrixMC" };
 export const dynamic = "force-dynamic";
 
 export default async function StaffApplyPage() {
-  const positions = await getStaffPositions();
+  const [positions, gate] = await Promise.all([getStaffPositions(), getApplyGate()]);
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-14 sm:px-6 lg:px-8">
@@ -19,7 +22,26 @@ export default async function StaffApplyPage() {
       </p>
 
       <div className="mt-8">
-        <StaffApplyForm positions={positions} />
+        <SanctionsWarning />
+      </div>
+
+      {gate.state !== "open" && (
+        <div className="mt-8">
+          <ApplyGateNotice gate={gate} next="/staff-apply" />
+        </div>
+      )}
+
+      <div className="mt-8">
+        <StaffApplyForm
+          positions={positions}
+          blockedReason={
+            gate.state === "guest"
+              ? "Accedi per candidarti"
+              : gate.state === "blocked"
+                ? "Candidatura già inviata"
+                : null
+          }
+        />
       </div>
     </div>
   );

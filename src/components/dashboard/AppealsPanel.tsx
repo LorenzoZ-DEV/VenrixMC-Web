@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Badge, statusTone } from "@/components/ui/Badge";
+import { Badge, statusLabel, statusTone } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { NotifyNotice, noticeFromOutcome, type Notice } from "@/components/dashboard/NotifyNotice";
@@ -36,7 +36,7 @@ type LiteBansRecord = {
 
 function formatSanctionStatus(r: LiteBansRecord) {
   if (r.removedBy) return `Rimossa da ${r.removedBy}`;
-  if (r.until === null) return r.type === "kick" ? "—" : "Permanente";
+  if (r.until === null) return r.type === "kick" ? "-" : "Permanente";
   if (r.until <= Date.now()) return "Scaduta";
   return r.active ? "Attiva" : "Non attiva";
 }
@@ -137,8 +137,8 @@ export function AppealsPanel({ canDelete }: { canDelete: boolean }) {
           >
             <option value="">Tutti</option>
             <option value="PENDING">In attesa</option>
-            <option value="APPROVED">Approvati</option>
-            <option value="DENIED">Rifiutati</option>
+            <option value="APPROVED">Accettati</option>
+            <option value="DENIED">Respinti</option>
           </select>
         </div>
         <div>
@@ -185,25 +185,25 @@ export function AppealsPanel({ canDelete }: { canDelete: boolean }) {
               items.map((appeal) => (
                 <tr key={appeal.id} className="border-b border-white/5 last:border-0">
                   <td className="px-4 py-3 font-medium text-white">{appeal.minecraftName}</td>
-                  <td className="px-4 py-3 font-mono text-slate-400">{appeal.banId ?? "—"}</td>
-                  <td className="px-4 py-3 text-slate-400">{appeal.banReason ?? "—"}</td>
+                  <td className="px-4 py-3 font-mono text-slate-400">{appeal.banId ?? "-"}</td>
+                  <td className="px-4 py-3 text-slate-400">{appeal.banReason ?? "-"}</td>
                   <td className="px-4 py-3">
-                    <Badge tone={statusTone(appeal.status)}>{appeal.status}</Badge>
+                    <Badge tone={statusTone(appeal.status)}>{statusLabel(appeal.status)}</Badge>
                   </td>
-                  <td className="px-4 py-3 text-slate-400">{appeal.reviewedBy?.username ?? "—"}</td>
+                  <td className="px-4 py-3 text-slate-400">{appeal.reviewedBy?.username ?? "-"}</td>
                   <td className="px-4 py-3 text-slate-400">
                     {new Date(appeal.createdAt).toLocaleDateString("it-IT")}
                   </td>
                   <td className="px-4 py-3 text-right space-x-3">
                     <button
-                      className="text-sm font-semibold text-venrix-300 hover:text-venrix-200"
+                      className="text-sm font-semibold text-venrix-300 hover:underline"
                       onClick={() => openAppeal(appeal)}
                     >
                       Gestisci
                     </button>
                     {canDelete && (
                       <button
-                        className="text-sm font-semibold text-red-400 hover:text-red-300"
+                        className="text-sm font-semibold text-red-600 dark:text-red-400 hover:text-red-300"
                         onClick={() => removeAppeal(appeal.id)}
                       >
                         Elimina
@@ -224,7 +224,7 @@ export function AppealsPanel({ canDelete }: { canDelete: boolean }) {
               key={p}
               onClick={() => setPage(p)}
               className={`h-9 w-9 rounded-lg text-sm ${
-                p === page ? "bg-venrix-600 text-white" : "text-slate-300 hover:bg-white/10"
+                p === page ? "bg-venrix-600 text-onbrand" : "text-slate-300 hover:bg-white/10"
               }`}
             >
               {p}
@@ -240,7 +240,7 @@ export function AppealsPanel({ canDelete }: { canDelete: boolean }) {
               <div>
                 <p className="venrix-label">Stato attuale</p>
                 <p className="text-sm text-slate-300">
-                  <Badge tone={statusTone(active.status)}>{active.status}</Badge>{" "}
+                  <Badge tone={statusTone(active.status)}>{statusLabel(active.status)}</Badge>{" "}
                   <span className="text-slate-400">da {active.reviewedBy.username}</span>
                 </p>
               </div>
@@ -274,7 +274,7 @@ export function AppealsPanel({ canDelete }: { canDelete: boolean }) {
                         </div>
                         <p className="mt-1">{r.reason ?? "Nessun motivo indicato"}</p>
                         <p className="mt-1 text-slate-500">
-                          Staff: {r.staff ?? "—"} · {new Date(r.time).toLocaleString("it-IT")}
+                          Staff: {r.staff ?? "-"} · {new Date(r.time).toLocaleString("it-IT")}
                         </p>
                       </li>
                     ))}
@@ -284,7 +284,7 @@ export function AppealsPanel({ canDelete }: { canDelete: boolean }) {
             )}
             <div>
               <label className="venrix-label" htmlFor="staffNotes">
-                Note staff
+                Note staff (obbligatorie per approvare)
               </label>
               <textarea
                 id="staffNotes"
@@ -292,6 +292,7 @@ export function AppealsPanel({ canDelete }: { canDelete: boolean }) {
                 rows={4}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
+                placeholder="Motivazione della decisione..."
               />
             </div>
 
@@ -316,7 +317,19 @@ export function AppealsPanel({ canDelete }: { canDelete: boolean }) {
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button variant="primary" onClick={() => updateStatus(active.id, "APPROVED", notes)}>
+              <Button
+                variant="primary"
+                onClick={() => {
+                  if (!notes.trim()) {
+                    setNotice({
+                      tone: "warn",
+                      text: "Per approvare devi prima scrivere la motivazione nelle note staff.",
+                    });
+                    return;
+                  }
+                  updateStatus(active.id, "APPROVED", notes);
+                }}
+              >
                 Approva
               </Button>
               <Button variant="danger" onClick={() => updateStatus(active.id, "DENIED", notes)}>

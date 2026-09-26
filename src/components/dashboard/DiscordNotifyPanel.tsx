@@ -66,7 +66,7 @@ function ChannelField({
           disabled={disabled}
           onChange={(e) => onChange(e.target.value)}
         >
-          <option value="">— Nessuno (non pubblicare) —</option>
+          <option value="">Nessuno (non pubblicare)</option>
           {channels.map((c) => (
             <option key={c.id} value={c.id}>
               #{c.name}
@@ -173,7 +173,7 @@ export function DiscordNotifyPanel({ initial }: { initial: DiscordNotifyConfig }
     <div className="venrix-card space-y-5 p-6">
       <div className="flex items-center gap-2">
         <IconChat className="h-4 w-4 text-venrix-300" />
-        <h3 className="font-display text-xs text-white">Notifiche Discord</h3>
+        <h3 className="font-display text-base font-semibold text-white">Notifiche Discord</h3>
       </div>
 
       {botConfigured === false && (
@@ -196,7 +196,7 @@ export function DiscordNotifyPanel({ initial }: { initial: DiscordNotifyConfig }
           disabled={loading || guilds.length === 0}
           onChange={(e) => selectGuild(e.target.value)}
         >
-          <option value="">{loading ? "Caricamento..." : "— Seleziona un server —"}</option>
+          <option value="">{loading ? "Caricamento..." : "Seleziona un server"}</option>
           {guilds.map((g) => (
             <option key={g.id} value={g.id}>
               {g.name}
@@ -267,7 +267,7 @@ export function DiscordNotifyPanel({ initial }: { initial: DiscordNotifyConfig }
         {message && (
           <span
             className={`inline-flex items-center gap-1.5 text-sm ${
-              message.tone === "ok" ? "text-emerald-400" : "text-red-400"
+              message.tone === "ok" ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
             }`}
           >
             {message.tone === "ok" && <IconCheck className="h-3.5 w-3.5" />}

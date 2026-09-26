@@ -6,7 +6,7 @@ import { IconCheck } from "@/components/icons";
 
 function Saved() {
   return (
-    <span className="ml-3 inline-flex items-center gap-1.5 text-sm text-emerald-400">
+    <span className="ml-3 inline-flex items-center gap-1.5 text-sm text-emerald-600 dark:text-emerald-400">
       <IconCheck className="h-3.5 w-3.5" /> Salvato
     </span>
   );
@@ -43,7 +43,7 @@ export function SettingsPanel({ initialColors, initialSocial, initialToggles }: 
   return (
     <div className="space-y-6">
       <div className="venrix-card space-y-4 p-6">
-        <h3 className="font-display text-xs text-white">Colori del sito</h3>
+        <h3 className="font-display text-base font-semibold text-white">Colori del sito</h3>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label className="venrix-label">Primario</label>
@@ -69,7 +69,7 @@ export function SettingsPanel({ initialColors, initialSocial, initialToggles }: 
       </div>
 
       <div className="venrix-card space-y-4 p-6">
-        <h3 className="font-display text-xs text-white">Link social</h3>
+        <h3 className="font-display text-base font-semibold text-white">Link social</h3>
         <div className="grid gap-4 sm:grid-cols-2">
           {(["discord", "store", "tiktok", "youtube"] as const).map((k) => (
             <div key={k}>
@@ -88,7 +88,7 @@ export function SettingsPanel({ initialColors, initialSocial, initialToggles }: 
       </div>
 
       <div className="venrix-card space-y-4 p-6">
-        <h3 className="font-display text-xs text-white">Sezioni pubbliche</h3>
+        <h3 className="font-display text-base font-semibold text-white">Sezioni pubbliche</h3>
         <label className="flex items-center gap-2 text-sm text-slate-300">
           <input
             type="checkbox"

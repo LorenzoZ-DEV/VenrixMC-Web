@@ -7,3 +7,7 @@ SERVER_HOST="your.server.ip.or.hostname"
 SERVER_PORT="22"
 # Absolute path on the server where the project lives.
 SERVER_PATH="/opt/venrixmc-website"
+
+# Optional: private key to log in with (e.g. "$HOME/.ssh/venrixmc_deploy").
+# Leave empty to use ssh defaults / password.
+SSH_KEY=""

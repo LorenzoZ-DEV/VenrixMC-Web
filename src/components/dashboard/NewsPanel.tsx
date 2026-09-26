@@ -126,13 +126,13 @@ export function NewsPanel() {
                   </td>
                   <td className="px-4 py-3 text-right space-x-3">
                     <button
-                      className="text-sm font-semibold text-venrix-300 hover:text-venrix-200"
+                      className="text-sm font-semibold text-venrix-300 hover:underline"
                       onClick={() => openEdit(n)}
                     >
                       Modifica
                     </button>
                     <button
-                      className="text-sm font-semibold text-red-400 hover:text-red-300"
+                      className="text-sm font-semibold text-red-600 dark:text-red-400 hover:text-red-300"
                       onClick={() => remove(n.id)}
                     >
                       Elimina
@@ -178,8 +178,11 @@ export function NewsPanel() {
               className="venrix-input"
               value={form.coverImage}
               onChange={(e) => setForm({ ...form, coverImage: e.target.value })}
-              placeholder="/imgs/news-cover.png"
+              placeholder="https://i.imgur.com/xxxx.png oppure /imgs/news-cover.png"
             />
+            <p className="mt-1 text-xs text-slate-500">
+              Accetta link esterni (imgur, ibb, qualsiasi CDN) o file dentro /public.
+            </p>
           </div>
           <div>
             <label className="venrix-label">Contenuto (HTML)</label>
@@ -199,7 +202,7 @@ export function NewsPanel() {
             Pubblicata
           </label>
 
-          {error && <p className="text-sm text-red-400">{error}</p>}
+          {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
 
           <Button onClick={save} className="w-full">
             Salva

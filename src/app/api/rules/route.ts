@@ -7,7 +7,10 @@ import { invalidate } from "@/lib/cache";
 import { keys } from "@/lib/redis";
 import { logAudit } from "@/lib/audit";
 
-const schema = z.object({ content: z.string().min(1).max(50_000) });
+const schema = z.object({
+  content: z.string().min(1).max(50_000),
+  format: z.enum(["html", "markdown", "text"]).optional().default("html"),
+});
 
 export async function PUT(req: NextRequest) {
   const auth = await requireApiRole(Role.ADMIN);
@@ -24,9 +27,15 @@ export async function PUT(req: NextRequest) {
     update: { value: parsed.data.content },
     create: { key: "rules_content", value: parsed.data.content },
   });
+  await prisma.siteSettings.upsert({
+    where: { key: "rules_format" },
+    update: { value: parsed.data.format },
+    create: { key: "rules_format", value: parsed.data.format },
+  });
 
   await invalidate(keys.cache("settings", "rules_content"));
-  await logAudit(auth.session.userId, "RULES_UPDATE", "Regolamento aggiornato");
+  await invalidate(keys.cache("settings", "rules_format"));
+  await logAudit(auth.session.userId, "RULES_UPDATE", `Regolamento aggiornato (formato: ${parsed.data.format})`);
 
   return NextResponse.json({ ok: true });
 }

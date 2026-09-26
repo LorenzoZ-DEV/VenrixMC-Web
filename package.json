@@ -1,6 +1,6 @@
 {
   "name": "venrixmc-website",
-  "version": "1.0.0",
+  "version": "1.1.8",
   "private": true,
   "engines": {
     "node": ">=20.0.0"
@@ -15,6 +15,7 @@
     "prisma:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
+    "db:seed-forum": "tsx prisma/seed-forum.ts",
     "db:create-user": "tsx prisma/create-user.ts",
     "postinstall": "prisma generate"
   },
@@ -26,10 +27,12 @@
     "ioredis": "^5.4.1",
     "iron-session": "^8.0.4",
     "isomorphic-dompurify": "^2.16.0",
+    "marked": "^18.0.13",
     "mysql2": "^3.23.3",
     "next": "14.2.35",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "sharp": "^0.33.5",
     "skinview3d": "^3.4.2",
     "zod": "^3.23.8"
   },

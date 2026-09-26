@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { Role } from "@prisma/client";
 import { getSession, type SessionData } from "./session";
-import { ROLE_RANK } from "./roles";
+import { ROLE_RANK, applicationScope } from "./roles";
 
 export { ROLE_RANK };
 
@@ -30,4 +30,22 @@ export async function requireApiRole(
     return { response: NextResponse.json({ error: "Permessi insufficienti" }, { status: 403 }) };
   }
   return { session };
+}
+
+/**
+ * Guard for the staff-applications API: HEAD+ see every application, the
+ * Capo Builder only the Builder ones. `scope` goes into the Prisma `where`.
+ */
+export async function requireApplicationReviewer(): Promise<
+  { session: SessionData; scope: { roles?: string } } | { response: NextResponse }
+> {
+  const session = await getSession();
+  if (!session) {
+    return { response: NextResponse.json({ error: "Non autenticato" }, { status: 401 }) };
+  }
+  const scope = applicationScope(session.role);
+  if (!scope) {
+    return { response: NextResponse.json({ error: "Permessi insufficienti" }, { status: 403 }) };
+  }
+  return { session, scope };
 }

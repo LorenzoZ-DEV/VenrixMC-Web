@@ -1,17 +1,25 @@
 import { requireDashboardRole } from "@/components/dashboard/RoleGate";
 import { RulesEditor } from "@/components/dashboard/RulesEditor";
-import { getRulesContent } from "@/lib/settings";
+import { getRulesContent, getSetting } from "@/lib/settings";
+import { parseRulesFormat } from "@/lib/rulesFormat";
+
+import { PageHeader } from "@/components/dashboard/PageHeader";
 
 export default async function RulesDashboardPage() {
   await requireDashboardRole("ADMIN");
-  const content = await getRulesContent();
+  const [content, formatRaw] = await Promise.all([
+    getRulesContent(),
+    getSetting("rules_format"),
+  ]);
 
   return (
     <div>
-      <h1 className="font-display text-lg text-white">Regolamento</h1>
-      <p className="mt-1 text-slate-400">Modifica il contenuto pubblico della pagina Rules.</p>
-      <div className="mt-6">
-        <RulesEditor initialContent={content} />
+      <PageHeader
+        title="Regolamento"
+        description="Modifica il contenuto pubblico della pagina Rules."
+      />
+      <div>
+        <RulesEditor initialContent={content} initialFormat={parseRulesFormat(formatRaw)} />
       </div>
     </div>
   );

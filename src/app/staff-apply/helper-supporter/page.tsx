@@ -1,12 +1,25 @@
 import type { Metadata } from "next";
 import { StaffWizard } from "@/components/forms/StaffWizard";
+import { ApplyGateNotice } from "@/components/forms/ApplyGateNotice";
+import { SanctionsWarning } from "@/components/forms/SanctionsWarning";
+import { getApplyGate } from "@/lib/applyCooldown";
 
-export const metadata: Metadata = { title: "Candidatura Helper Supporter — VenrixMC" };
+export const metadata: Metadata = { title: "Candidatura Helper Supporter · VenrixMC" };
+export const dynamic = "force-dynamic";
 
-export default function HelperSupporterApplyPage() {
+export default async function HelperSupporterApplyPage() {
+  const gate = await getApplyGate();
+
   return (
     <div className="mx-auto max-w-2xl px-4 py-14 sm:px-6 lg:px-8">
-      <StaffWizard wizardId="helper-supporter" />
+      {gate.state === "open" ? (
+        <div className="space-y-6">
+          <SanctionsWarning />
+          <StaffWizard wizardId="helper-supporter" />
+        </div>
+      ) : (
+        <ApplyGateNotice gate={gate} next="/staff-apply/helper-supporter" />
+      )}
     </div>
   );
 }

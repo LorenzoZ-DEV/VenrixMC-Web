@@ -204,7 +204,9 @@ export async function fetchLiteBansRecords(
         removedBy: r.removedBy,
         removedReason: r.removedReason,
         time: Number(r.time),
-        until: r.until === null || r.until === undefined ? null : Number(r.until),
+        // LiteBans scrive until = 0 per le sanzioni permanenti: va trattato
+        // come null, altrimenti il sito le mostrerebbe come "Scaduta".
+        until: r.until === null || r.until === undefined || Number(r.until) <= 0 ? null : Number(r.until),
         active: Boolean(r.active),
       }));
 
@@ -254,7 +256,8 @@ export async function getBanById(id: number): Promise<LiteBansRecord | null> {
         removedBy: r.removedBy,
         removedReason: r.removedReason,
         time: Number(r.time),
-        until: r.until === null || r.until === undefined ? null : Number(r.until),
+        // until = 0 significa permanente in LiteBans (vedi sopra).
+        until: r.until === null || r.until === undefined || Number(r.until) <= 0 ? null : Number(r.until),
         active: Boolean(r.active),
       } satisfies LiteBansRecord;
     } catch (err) {

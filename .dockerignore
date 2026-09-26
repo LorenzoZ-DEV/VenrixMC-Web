@@ -12,3 +12,6 @@ DEPLOY.md
 docker-compose.yml
 docker-compose.prod.yml
 deploy
+.agents
+.claude
+skills-lock.json

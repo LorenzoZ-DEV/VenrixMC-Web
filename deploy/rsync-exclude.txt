@@ -6,3 +6,6 @@ node_modules
 *.tsbuildinfo
 prisma/dev.db
 deploy/deploy.config.sh
+.agents
+.claude
+skills-lock.json

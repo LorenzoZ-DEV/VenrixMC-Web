@@ -6,19 +6,31 @@ export function Pagination({
   basePath,
   currentPage,
   totalPages,
+  query,
 }: {
   basePath: string;
   currentPage: number;
   totalPages: number;
+  /** Parametri da riportare in ogni link (filtro etichetta, ricerca, ...). */
+  query?: Record<string, string | undefined>;
 }) {
   if (totalPages <= 1) return null;
 
   const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
 
+  const href = (page: number) => {
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(query ?? {})) {
+      if (value) params.set(key, value);
+    }
+    params.set("page", String(page));
+    return `${basePath}?${params.toString()}`;
+  };
+
   return (
     <nav className="mt-10 flex items-center justify-center gap-2">
       <Link
-        href={`${basePath}?page=${Math.max(1, currentPage - 1)}`}
+        href={href(Math.max(1, currentPage - 1))}
         className={clsx(
           "flex items-center gap-1 px-3 py-2 text-sm",
           currentPage === 1
@@ -32,11 +44,11 @@ export function Pagination({
       {pages.map((p) => (
         <Link
           key={p}
-          href={`${basePath}?page=${p}`}
+          href={href(p)}
           className={clsx(
-            "pixel-corners-sm h-9 w-9 border-2 text-center text-sm leading-[2.15rem]",
+            "pixel-corners-sm h-9 w-9 border text-center text-sm leading-[2.15rem]",
             p === currentPage
-              ? "border-black/40 bg-venrix-600 font-semibold text-white"
+              ? "border-white/10 bg-venrix-600 font-semibold text-onbrand"
               : "border-transparent text-slate-300 hover:bg-white/10"
           )}
         >
@@ -45,7 +57,7 @@ export function Pagination({
       ))}
 
       <Link
-        href={`${basePath}?page=${Math.min(totalPages, currentPage + 1)}`}
+        href={href(Math.min(totalPages, currentPage + 1))}
         className={clsx(
           "flex items-center gap-1 px-3 py-2 text-sm",
           currentPage === totalPages

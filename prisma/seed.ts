@@ -1,5 +1,7 @@
 import { PrismaClient, Role } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { INITIAL_STAFF } from "./staff-seed";
+import { INITIAL_FORUM, INITIAL_FORUM_TAGS } from "./forum-seed";
 
 const prisma = new PrismaClient();
 
@@ -117,7 +119,7 @@ async function main() {
       icon: "hammer",
       slots: 1,
       open: true,
-      wizardId: null,
+      wizardId: "builder",
       order: 3,
       requirements: [
         "Portfolio di build precedenti (screenshot o server)",
@@ -164,7 +166,51 @@ async function main() {
     },
   });
 
-  console.log("Seed completato:", { dev: dev.email, admin: admin.email });
+  // Formazione iniziale del team: `update: {}` fa si che rieseguire il seed
+  // non sovrascriva le modifiche fatte nel frattempo dalla dashboard.
+  for (const member of INITIAL_STAFF) {
+    await prisma.staffMember.upsert({
+      where: { username: member.username },
+      update: {},
+      create: member,
+    });
+  }
+
+  // Etichette prima dei forum: un'etichetta senza board collegati vale
+  // ovunque, ed e esattamente quello che serve a una struttura appena nata.
+  for (const tag of INITIAL_FORUM_TAGS) {
+    await prisma.forumTag.upsert({
+      where: { slug: tag.slug },
+      update: {},
+      create: tag,
+    });
+  }
+
+  let boardCount = 0;
+  for (const category of INITIAL_FORUM) {
+    const { boards, ...data } = category;
+    const saved = await prisma.forumCategory.upsert({
+      where: { slug: data.slug },
+      update: {},
+      create: data,
+    });
+
+    for (const board of boards) {
+      await prisma.forumBoard.upsert({
+        where: { slug: board.slug },
+        update: {},
+        create: { ...board, categoryId: saved.id },
+      });
+      boardCount += 1;
+    }
+  }
+
+  console.log("Seed completato:", {
+    dev: dev.email,
+    admin: admin.email,
+    staff: INITIAL_STAFF.length,
+    forum: `${INITIAL_FORUM.length} categorie, ${boardCount} sezioni, ${INITIAL_FORUM_TAGS.length} etichette`,
+  });
 }
 
 main()

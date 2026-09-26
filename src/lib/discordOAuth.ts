@@ -1,6 +1,8 @@
 const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
 const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
-const APP_URL = process.env.APP_URL ?? "http://localhost:3000";
+// Senza la barra finale: "https://sito/" darebbe "//api/..." e Discord
+// rifiuta qualsiasi redirect che non combaci carattere per carattere.
+const APP_URL = (process.env.APP_URL ?? "http://localhost:3000").replace(/\/+$/, "");
 
 export const DISCORD_REDIRECT_URI = `${APP_URL}/api/auth/discord/callback`;
 

@@ -44,6 +44,15 @@ export async function PATCH(req: NextRequest) {
   const user = await prisma.user.findUnique({ where: { id: session.userId } });
   if (!user) return NextResponse.json({ error: "Non trovato" }, { status: 404 });
 
+  // Gli account nati sul forum con Discord non hanno una password: questa
+  // riautenticazione non si puo fare e con essa nemmeno il cambio credenziali.
+  if (!user.passwordHash) {
+    return NextResponse.json(
+      { error: "Questo account accede con Discord e non ha una password" },
+      { status: 400 }
+    );
+  }
+
   const passwordOk = await bcrypt.compare(parsed.data.currentPassword, user.passwordHash);
   if (!passwordOk) {
     return NextResponse.json({ error: "Password attuale errata" }, { status: 401 });

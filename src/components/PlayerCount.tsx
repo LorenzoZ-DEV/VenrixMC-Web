@@ -20,15 +20,40 @@ export function PlayerCount({ initial }: { initial: Status }) {
   }, []);
 
   return (
-    <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm">
-      <span
-        className={`h-2 w-2 rounded-full ${status.online ? "bg-emerald-400" : "bg-red-500"}`}
-      />
-      <span className="text-slate-200">
+    <div
+      className="surface-raised inline-flex items-center gap-3 bg-ink-700 px-4 py-2.5 text-sm"
+      role="status"
+      aria-live="polite"
+    >
+      {/*
+        Il led di stato e' un quadrato, non un pallino: e' l'unico verde del
+        sito e sta qui perche' e' un dato reale (il server risponde o no),
+        non una decorazione. Il quadrato dietro pulsa in loop, quello davanti
+        resta fermo: un punto che lampeggia da solo legge come un errore.
+      */}
+      <span className="relative flex h-3 w-3 shrink-0">
+        {status.online && (
+          <span className="absolute inline-flex h-full w-full animate-ping bg-emerald-400 opacity-60" />
+        )}
+        <span
+          className={`relative inline-flex h-3 w-3 ${
+            status.online ? "bg-emerald-400" : "bg-red-500"
+          }`}
+          style={{ boxShadow: "inset -1px -1px 0 rgb(0 0 0 / 0.35)" }}
+        />
+      </span>
+      <span className="mono-label text-slate-300">
         {status.online ? (
           <>
-            <strong className="text-white">{status.players.online}</strong>
-            {status.players.max ? ` / ${status.players.max}` : ""} online
+            {/* tabular: il conteggio cambia ogni 30s e senza cifre a
+                larghezza fissa la riga "salta" a ogni aggiornamento. */}
+            <strong className="tabular text-[13px] font-bold text-white">
+              {status.players.online}
+            </strong>
+            {status.players.max ? (
+              <span className="tabular text-slate-500">/{status.players.max}</span>
+            ) : null}{" "}
+            online
           </>
         ) : (
           "Server offline"

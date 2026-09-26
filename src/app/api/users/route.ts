@@ -17,6 +17,7 @@ export async function GET() {
       username: true,
       email: true,
       role: true,
+      discordRank: true,
       active: true,
       createdAt: true,
     },
@@ -48,7 +49,7 @@ export async function POST(req: NextRequest) {
       role: parsed.data.role,
       passwordHash,
     },
-    select: { id: true, username: true, email: true, role: true, active: true, createdAt: true },
+    select: { id: true, username: true, email: true, role: true, discordRank: true, active: true, createdAt: true },
   });
 
   await logAudit(auth.session.userId, "USER_CREATE", `Creato utente ${user.username} (${user.role})`);

@@ -108,7 +108,7 @@ export function ProfileForm({ user, discordConfigured }: { user: ProfileUser; di
 
       <form onSubmit={handleSubmit} className="venrix-card space-y-4 p-6">
         <div className="flex items-center justify-between">
-          <h2 className="font-display text-xs text-white">Il tuo account</h2>
+          <h2 className="font-display text-base font-semibold text-white">Il tuo account</h2>
           <Badge tone="role">{user.role}</Badge>
         </div>
 
@@ -183,9 +183,9 @@ export function ProfileForm({ user, discordConfigured }: { user: ProfileUser; di
           />
         </div>
 
-        {error && <p className="text-sm text-red-400">{error}</p>}
+        {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
         {status === "success" && (
-          <p className="inline-flex items-center gap-1.5 text-sm text-emerald-400">
+          <p className="inline-flex items-center gap-1.5 text-sm text-emerald-600 dark:text-emerald-400">
             <IconCheck className="h-3.5 w-3.5" /> Profilo aggiornato
           </p>
         )}
@@ -196,7 +196,7 @@ export function ProfileForm({ user, discordConfigured }: { user: ProfileUser; di
       </form>
 
       <div className="venrix-card p-6">
-        <h2 className="font-display text-xs text-white">Discord</h2>
+        <h2 className="font-display text-base font-semibold text-white">Discord</h2>
 
         {user.discordId ? (
           <div className="mt-4 flex items-center justify-between gap-3">
@@ -207,7 +207,7 @@ export function ProfileForm({ user, discordConfigured }: { user: ProfileUser; di
                   alt={user.discordUsername ?? "Discord"}
                   width={40}
                   height={40}
-                  className="pixel-corners-sm h-10 w-10 border-2 border-black/40"
+                  className="pixel-corners-sm h-10 w-10 border border-white/10"
                 />
               ) : (
                 <PixelFrame className="h-10 w-10 text-venrix-300">
@@ -216,7 +216,7 @@ export function ProfileForm({ user, discordConfigured }: { user: ProfileUser; di
               )}
               <div>
                 <p className="text-sm font-medium text-white">{user.discordUsername}</p>
-                <p className="text-xs text-emerald-400">Collegato</p>
+                <p className="text-xs text-emerald-600 dark:text-emerald-400">Collegato</p>
               </div>
             </div>
             <Button type="button" variant="secondary" onClick={unlinkDiscord} disabled={unlinking}>

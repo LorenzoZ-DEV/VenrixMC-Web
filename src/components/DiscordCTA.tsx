@@ -14,27 +14,47 @@ export async function DiscordCTA() {
   return (
     <section className="relative overflow-hidden bg-venrix-700">
       <div
+        aria-hidden
         className="absolute inset-0 opacity-[0.15]"
         style={{ backgroundImage: PLUS_PATTERN, backgroundSize: "24px 24px" }}
       />
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-ink-900/40" />
+      {/* Luce radiale dietro il testo invece della sola sfumatura verso il
+          basso: il fondo brand pieno smette di leggersi come tinta unita. */}
+      <div
+        aria-hidden
+        className="absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(70% 90% at 22% 20%, rgb(255 255 255 / 0.16), transparent 62%)",
+        }}
+      />
+      <div aria-hidden className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/25" />
 
       <div className="relative mx-auto flex max-w-6xl flex-col-reverse items-center gap-8 px-4 py-16 text-center sm:px-6 lg:flex-row lg:justify-between lg:text-left lg:px-8">
         <div>
-          <h2 className="font-display text-lg text-white sm:text-xl">
+          <h2 className="font-display text-3xl font-bold text-onbrand sm:text-[40px] sm:leading-[1.08]">
             Unisciti al nostro Discord
           </h2>
-          <p className="mt-3 max-w-md text-venrix-100">
-            {widget.enabled
-              ? `${widget.presenceCount} membri online in questo momento.`
-              : "Chatta con la community, resta aggiornato sugli eventi e parla direttamente con lo staff."}
+          <p className="mt-5 max-w-[46ch] text-[17px] leading-relaxed text-onbrand/85">
+            {widget.enabled ? (
+              <>
+                <span className="tabular font-semibold text-onbrand">{widget.presenceCount}</span>{" "}
+                membri online in questo momento.
+              </>
+            ) : (
+              "Chatta con la community, resta aggiornato sugli eventi e parla direttamente con lo staff."
+            )}
           </p>
+          {/*
+            Questa fascia ha un fondo brand pieno in entrambi i temi, quindi
+            testo e pulsante usano il bianco vero (onbrand) e il magenta scuro,
+            non i token che si invertono passando da chiaro a scuro.
+          */}
           <a
             href={widget.instantInvite ?? SITE.discordInvite}
             target="_blank"
             rel="noopener noreferrer"
-            className="pixel-corners-sm mt-6 inline-flex items-center justify-center gap-2 border-2 border-black/30 bg-white px-5 py-3 font-display text-[11px] uppercase tracking-wide text-venrix-700 transition hover:bg-venrix-100 active:translate-y-[1px]"
-            style={{ boxShadow: "0 3px 0 rgba(0,0,0,0.35)" }}
+            className="btn-base mt-8 bg-onbrand px-7 py-3.5 text-[17px] font-bold text-venrix-800 hover:bg-white"
           >
             <IconChat className="h-4 w-4" /> Entra nel Discord
           </a>

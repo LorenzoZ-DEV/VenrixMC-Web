@@ -7,7 +7,13 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+/// Livelli di accesso di un account. `MEMBER` e il gradino piu basso ed e
+/// quello con cui nasce chi si registra dal forum con Discord: puo scrivere
+/// sul forum e basta, la dashboard resta da STAFF in su.
 enum Role {
+  MEMBER
+  /// Capo Builder: fuori dalla scala staff, vede solo le candidature Builder.
+  BUILDER
   STAFF
   HEAD
   ADMIN
@@ -27,23 +33,58 @@ enum ApplyStatus {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  username     String   @unique
-  email        String   @unique
-  passwordHash String
-  role         Role     @default(STAFF)
-  active       Boolean  @default(true)
-  discordId       String?  @unique
+  id              String     @id @default(cuid())
+  username        String     @unique
+  // I membri registrati con Discord non hanno una mail loro: ne salviamo una
+  // derivata dallo snowflake (<id>@discord.local) per non rompere l'unique.
+  email           String     @unique
+  // Nullo per chi entra solo con Discord: quegli account non hanno password
+  // e il login classico li deve rifiutare invece di confrontare una stringa
+  // vuota (vedi api/auth/login).
+  passwordHash    String?
+  role            Role       @default(STAFF)
+  active          Boolean    @default(true)
+  discordId       String?    @unique
   discordUsername String?
   discordAvatar   String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  /// Rank staff letto dai ruoli sul server Discord, riallineato a ogni
+  /// accesso con Discord (lib/discordRank.ts). Nullo = nessun ruolo staff.
+  discordRank     StaffRole?
 
-  news           News[]
-  reviewedAppeals   Appeal[]     @relation("AppealReviewer")
-  reviewedApplies   StaffApply[] @relation("ApplyReviewer")
-  auditLogs      AuditLog[]
+  // ---- Profilo forum ----
+  /// Nick Minecraft dichiarato dal membro: da qui arrivano testa e skin.
+  minecraftName String?   @db.VarChar(16)
+  bio           String?   @db.VarChar(1000)
+  signature     String?   @db.VarChar(300)
+  /// Denormalizzato: si aggiorna a ogni post e si legge in ogni firma.
+  postCount     Int       @default(0)
+  lastSeenAt    DateTime?
+  /// Silenziato sul forum senza perdere l'accesso al resto del sito.
+  forumMuted    Boolean   @default(false)
 
+  /// Si puo inviare una candidatura staff ogni 14 giorni. Quando lo staff
+  /// concede un'eccezione dalla dashboard questo campo diventa "adesso", e le
+  /// candidature precedenti smettono di contare per il limite.
+  applyCooldownResetAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  news            News[]
+  reviewedAppeals Appeal[]     @relation("AppealReviewer")
+  reviewedApplies StaffApply[] @relation("ApplyReviewer")
+  staffApplies    StaffApply[] @relation("ApplyApplicant")
+  appeals         Appeal[]     @relation("AppealApplicant")
+  auditLogs       AuditLog[]
+
+  forumTopics      ForumTopic[]     @relation("ForumTopicAuthor")
+  forumLastPosts   ForumTopic[]     @relation("ForumTopicLastPoster")
+  forumPosts       ForumPost[]      @relation("ForumPostAuthor")
+  forumEdits       ForumPost[]      @relation("ForumPostEditor")
+  forumReactions   ForumReaction[]
+  blacklistEntries StaffBlacklist[] @relation("BlacklistAuthor")
+
+  @@index([role])
   @@map("users")
 }
 
@@ -81,11 +122,16 @@ model Appeal {
   ip            String?
   reviewedById  String?
   reviewedBy    User?        @relation("AppealReviewer", fields: [reviewedById], references: [id])
+  /// Account di chi ha inviato l'appeal, se era loggato: serve a mostrargli
+  /// lo stato nella sua dashboard. Nullo per gli appeal anonimi.
+  userId        String?
+  user          User?        @relation("AppealApplicant", fields: [userId], references: [id], onDelete: SetNull)
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 
   @@index([status, createdAt])
   @@index([minecraftName])
+  @@index([userId, createdAt])
   @@map("appeals")
 }
 
@@ -104,11 +150,45 @@ model StaffApply {
   ip            String?
   reviewedById  String?
   reviewedBy    User?       @relation("ApplyReviewer", fields: [reviewedById], references: [id])
+  /// Account del candidato: e su questo che si conta il limite di 14 giorni
+  /// (lib/applyCooldown.ts). Nullo solo per le candidature anonime storiche.
+  userId        String?
+  user          User?       @relation("ApplyApplicant", fields: [userId], references: [id], onDelete: SetNull)
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
   @@index([status, createdAt])
+  @@index([userId, createdAt])
   @@map("staff_applies")
+}
+
+/// Chi non puo candidarsi come staff. Una voce puo identificare la persona
+/// con uno qualsiasi dei tre dati (UUID, nick, ID Discord) o con piu di uno
+/// insieme: basta che UNO combaci perche la candidatura venga bloccata.
+///
+/// UUID e nick sono normalizzati in scrittura (uuid senza trattini, tutto
+/// minuscolo) cosi il confronto non dipende dalla collation del database
+/// ne da come lo staff ha digitato il dato.
+model StaffBlacklist {
+  id            String   @id @default(cuid())
+  /// UUID Minecraft senza trattini, minuscolo. 32 caratteri esadecimali.
+  minecraftUuid String?  @db.VarChar(32)
+  /// Nick Minecraft in minuscolo: in Minecraft il confronto fra nick non
+  /// distingue le maiuscole.
+  minecraftName String?  @db.VarChar(16)
+  /// Snowflake Discord, 17-20 cifre.
+  discordId     String?  @db.VarChar(20)
+  /// Mostrato al candidato quando la candidatura viene rifiutata.
+  reason        String   @db.Text
+  createdById   String?
+  createdBy     User?    @relation("BlacklistAuthor", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([minecraftUuid])
+  @@index([minecraftName])
+  @@index([discordId])
+  @@map("staff_blacklist")
 }
 
 model AuditLog {
@@ -148,4 +228,217 @@ model SiteSettings {
   updatedAt DateTime @updatedAt
 
   @@map("site_settings")
+}
+
+/// Ruoli mostrati nella pagina /staff. I nomi coincidono con le chiavi di
+/// ROLE_META in src/lib/team.ts, che tiene colori, icona e didascalia:
+/// aggiungere un ruolo qui richiede quindi anche una voce la.
+enum StaffRole {
+  Owner
+  SrDev
+  Dev
+  JrDev
+  Manager
+  SrAdmin
+  Admin
+  SrMod
+  ModPlus
+  Mod
+  SrHelper
+  Helper
+  Trainee
+  Builder
+}
+
+/// Un membro del team cosi come appare nella vetrina pubblica. Non e la
+/// stessa cosa di User: quello e un account che accede alla dashboard,
+/// questo e una scheda vetrina e i due possono esistere separatamente
+/// (un Owner senza account, o un developer che gestisce il sito senza
+/// comparire nella lista).
+model StaffMember {
+  id          String    @id @default(cuid())
+  username    String    @unique
+  role        StaffRole
+  description String    @db.Text
+  order       Int       @default(0)
+  visible     Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([role, order])
+  @@map("staff_members")
+}
+
+// ---------------------------------------------------------------------------
+//  Forum
+//
+//  Struttura a tre livelli come NamelessMC: Categoria > Forum > Discussione,
+//  con i post dentro la discussione. Le etichette (ForumTag) sono i "prefissi"
+//  colorati che si vedono davanti al titolo nella lista.
+// ---------------------------------------------------------------------------
+
+/// Intestazione che raggruppa piu forum nella pagina /forum. Non contiene
+/// discussioni: e solo il titolo di sezione sopra il blocco dei forum.
+model ForumCategory {
+  id          String   @id @default(cuid())
+  name        String   @db.VarChar(80)
+  slug        String   @unique
+  description String?  @db.VarChar(300)
+  order       Int      @default(0)
+  visible     Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  boards ForumBoard[]
+
+  @@index([order])
+  @@map("forum_categories")
+}
+
+/// Un forum vero e proprio: e il contenitore delle discussioni.
+///
+/// Puo essere annidato dentro un altro forum della stessa categoria
+/// (`parentId`): sono le sotto-sezioni, che sull'indice compaiono rientrate
+/// sotto il forum padre. La profondita si ferma a un livello — un forum con
+/// un padre non puo fare da padre a sua volta — perche oltre il secondo
+/// livello la lista diventa illeggibile e le briciole di pane infinite.
+model ForumBoard {
+  id         String        @id @default(cuid())
+  categoryId String
+  category   ForumCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  parentId String?
+  /// SetNull e non Cascade di proposito: cancellare un forum padre non deve
+  /// portarsi via in silenzio le discussioni delle sotto-sezioni. Le figlie
+  /// risalgono al primo livello, e l'API rifiuta comunque la cancellazione
+  /// finche ci sono sotto-sezioni collegate.
+  parent   ForumBoard?  @relation("ForumBoardChildren", fields: [parentId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  children ForumBoard[] @relation("ForumBoardChildren")
+
+  name        String   @db.VarChar(80)
+  slug        String   @unique
+  description String   @db.VarChar(500)
+  /// Chiave di FORUM_BOARD_ICONS in lib/forumMeta.ts.
+  icon        String   @default("chat")
+  order       Int      @default(0)
+  visible     Boolean  @default(true)
+  /// Ruolo minimo per *leggere*. Nullo = forum pubblico, leggibile da tutti.
+  readRole    Role?
+  /// Ruolo minimo per aprire una discussione. Nullo = qualsiasi membro loggato.
+  postRole    Role?
+  /// Chiude il forum in sola lettura senza nasconderlo (es. archivio).
+  locked      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  topics ForumTopic[]
+  tags   ForumTag[]   @relation("ForumBoardTags")
+
+  @@index([categoryId, order])
+  @@index([parentId, order])
+  @@map("forum_boards")
+}
+
+/// Etichetta/prefisso applicabile a una discussione. Il colore e una chiave
+/// di FORUM_TAG_COLORS (lib/forumMeta.ts), non una classe Tailwind: le classi
+/// devono restare scritte per esteso o il compilatore CSS le elimina.
+model ForumTag {
+  id          String   @id @default(cuid())
+  name        String   @db.VarChar(40)
+  slug        String   @unique
+  color       String   @default("venrix")
+  description String?  @db.VarChar(200)
+  order       Int      @default(0)
+  /// Solo lo staff puo applicarlo (es. "Risolto", "Annuncio").
+  staffOnly   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  /// Se vuoto l'etichetta e disponibile ovunque; altrimenti solo nei forum
+  /// elencati qui.
+  boards ForumBoard[] @relation("ForumBoardTags")
+  topics ForumTopic[] @relation("ForumTopicTags")
+
+  @@index([order])
+  @@map("forum_tags")
+}
+
+model ForumTopic {
+  id       String     @id @default(cuid())
+  boardId  String
+  board    ForumBoard @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  authorId String
+  author   User       @relation("ForumTopicAuthor", fields: [authorId], references: [id])
+  title    String     @db.VarChar(160)
+  /// Unico su tutto il forum: le rotte sono /forum/<board>/<topic> e uno slug
+  /// globale evita di dover incrociare board e topic a ogni lookup.
+  slug     String     @unique
+  pinned   Boolean    @default(false)
+  locked   Boolean    @default(false)
+  views    Int        @default(0)
+
+  /// Denormalizzati per poter ordinare e impaginare la lista discussioni con
+  /// una sola query, senza aggregare i post a ogni caricamento.
+  replyCount   Int      @default(0)
+  lastPostAt   DateTime @default(now())
+  lastPostById String?
+  lastPostBy   User?    @relation("ForumTopicLastPoster", fields: [lastPostById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  posts ForumPost[]
+  tags  ForumTag[]  @relation("ForumTopicTags")
+
+  @@index([boardId, pinned, lastPostAt])
+  @@index([lastPostAt])
+  @@index([authorId])
+  @@map("forum_topics")
+}
+
+model ForumPost {
+  id       String     @id @default(cuid())
+  topicId  String
+  topic    ForumTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  authorId String
+  author   User       @relation("ForumPostAuthor", fields: [authorId], references: [id])
+  content  String     @db.Text
+  /// Il messaggio di apertura: non si puo cancellare da solo, si cancella la
+  /// discussione intera.
+  opening  Boolean    @default(false)
+
+  editedAt   DateTime?
+  editedById String?
+  editedBy   User?     @relation("ForumPostEditor", fields: [editedById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  reactions ForumReaction[]
+
+  @@index([topicId, createdAt])
+  @@index([authorId])
+  @@map("forum_posts")
+}
+
+enum ForumReactionType {
+  LIKE
+  LOVE
+  LAUGH
+  AGREE
+}
+
+model ForumReaction {
+  id        String            @id @default(cuid())
+  postId    String
+  post      ForumPost         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      ForumReactionType @default(LIKE)
+  createdAt DateTime          @default(now())
+
+  /// Una sola reazione per persona e per post: ripremere cambia tipo o toglie.
+  @@unique([postId, userId])
+  @@index([userId])
+  @@map("forum_reactions")
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Role, AppealStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireApiRole } from "@/lib/auth";
+import { getSession } from "@/lib/session";
 import { appealSchema } from "@/lib/validators";
 import { rateLimit, clientIp } from "@/lib/rateLimit";
 import { withLock } from "@/lib/lock";
@@ -67,9 +68,30 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Dati non validi" }, { status: 400 });
   }
 
+  // Idempotency guard: same player+IP with a PENDING appeal from the last
+  // 2 minutes means retry/double-submit — return it instead of duplicating.
+  const recentCutoff = new Date(Date.now() - 2 * 60 * 1000);
+  const recentPending = await prisma.appeal.findMany({
+    where: { ip, status: "PENDING", createdAt: { gte: recentCutoff } },
+    orderBy: { createdAt: "desc" },
+    take: 10,
+  });
+  const duplicate = recentPending.find(
+    (row) => row.minecraftName.toLowerCase() === parsed.data.minecraftName.toLowerCase()
+  );
+  if (duplicate) {
+    return NextResponse.json({ appeal: duplicate, deduped: true }, { status: 200 });
+  }
+
+  // Logging in isn't required to appeal (a banned player may have no account),
+  // but when there is a session we link the appeal so it shows up in the
+  // player's own dashboard.
+  const session = await getSession();
+
   const result = await withLock(`appeal:${ip}:${parsed.data.minecraftName.toLowerCase()}`, async () => {
     const appeal = await prisma.appeal.create({
       data: {
+        userId: session?.userId ?? null,
         minecraftName: parsed.data.minecraftName,
         uuid: parsed.data.uuid || null,
         banId: parsed.data.banId || null,

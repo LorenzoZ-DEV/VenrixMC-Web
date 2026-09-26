@@ -1,13 +1,17 @@
 import type { Metadata } from "next";
 import DOMPurify from "isomorphic-dompurify";
-import { getRulesContent } from "@/lib/settings";
+import { getRulesContent, getSetting } from "@/lib/settings";
+import { parseRulesFormat, renderRulesBody } from "@/lib/rulesFormat";
 
-export const metadata: Metadata = { title: "Regolamento — VenrixMC" };
+export const metadata: Metadata = { title: "Regolamento · VenrixMC" };
 export const dynamic = "force-dynamic";
 
 export default async function RulesPage() {
-  const content = await getRulesContent();
-  const clean = DOMPurify.sanitize(content);
+  const [content, formatRaw] = await Promise.all([
+    getRulesContent(),
+    getSetting("rules_format"),
+  ]);
+  const clean = DOMPurify.sanitize(await renderRulesBody(parseRulesFormat(formatRaw), content));
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-14 sm:px-6 lg:px-8">
@@ -17,7 +21,7 @@ export default async function RulesPage() {
       </p>
 
       <div
-        className="prose prose-invert prose-purple mt-8 max-w-none prose-headings:font-display prose-a:text-venrix-300"
+        className="prose mt-8 max-w-none prose-headings:font-display prose-a:text-venrix-300"
         dangerouslySetInnerHTML={{ __html: clean }}
       />
     </div>

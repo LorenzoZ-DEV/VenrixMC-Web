@@ -31,7 +31,11 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+  // `passwordHash` nullo = account nato dal forum con Discord: non ha una
+  // password da confrontare e deve passare dal pulsante "Accedi con Discord".
+  // La risposta resta la stessa di una password sbagliata, altrimenti questa
+  // pagina direbbe a chiunque quali username esistono.
+  if (!user || !user.passwordHash || !(await bcrypt.compare(password, user.passwordHash))) {
     return NextResponse.json({ error: "Credenziali non valide" }, { status: 401 });
   }
 

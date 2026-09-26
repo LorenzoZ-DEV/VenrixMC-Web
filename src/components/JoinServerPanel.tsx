@@ -1,73 +1,44 @@
-"use client";
-
-import { useState } from "react";
 import { PlayerSkinViewer } from "@/components/PlayerSkinViewer";
-import { IconCopy, IconCheck } from "@/components/icons";
+import { CopyIp } from "@/components/CopyIp";
 import { SITE } from "@/lib/constants";
 
-const PANEL_SHADOW =
-  "inset 2px 2px 0 rgba(255,255,255,0.06), inset -2px -2px 0 rgba(0,0,0,0.35), 0 3px 0 rgba(0,0,0,0.4)";
-
 /**
- * Embedded in the hero, next to the Venrix__ skin — this is the site's one
- * and only "server name / IP / copy" widget (the hero used to also have a
- * standalone CopyIP pill, which duplicated this).
+ * La scheda del server nell'hero: nome, versione, indirizzo.
+ *
+ * La procedura per entrare vive nella sezione `HowToPlay`, che ha lo
+ * spazio per spiegarla; qui resta l'indirizzo, che e' la cosa che si va a
+ * cercare sopra la piega.
+ *
+ * Il bottone per copiare vive in `CopyIp`, lo stesso componente usato nei
+ * passi: l'indirizzo compare in due punti della pagina, ma il codice che lo
+ * copia e' uno solo.
  */
 export function JoinServerPanel() {
-  const [copied, setCopied] = useState(false);
-
-  async function handleCopy() {
-    try {
-      await navigator.clipboard.writeText(SITE.serverIp);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // clipboard API unavailable — ignore
-    }
-  }
-
   return (
-    // No pixel-corners clip-path here on purpose: it would clip the skin
-    // that's meant to visually spill past the panel's bottom-right edge.
-    <div
-      className="relative w-full shrink-0 border-2 border-black/40 bg-ink-800 p-6 py-10 sm:w-[420px]"
-      style={{ boxShadow: PANEL_SHADOW }}
-    >
-      <span
-        className="pixel-corners-sm absolute -left-2 -top-4 -rotate-6 border-2 border-black/40 bg-venrix-600 px-2.5 py-1.5 font-display text-[9px] text-white md:-left-4"
-        style={{ boxShadow: "0 3px 0 rgba(0,0,0,0.4)" }}
+    /*
+     * Niente overflow-hidden: la skin deve poter debordare oltre il bordo
+     * in basso a destra del pannello.
+     */
+    <div className="surface-raised relative w-full shrink-0 bg-ink-700 sm:w-[420px]">
+      <div
+        className="flex items-center justify-between gap-3 border-b border-white/10 px-5 py-3.5"
       >
-        1.20+ - 26.2
-      </span>
+        <h2 className="font-display text-base font-bold text-white">{SITE.name}</h2>
+        <span className="mono-label rounded-full bg-venrix-600/15 px-2.5 py-1 text-venrix-200">
+          Java {SITE.minecraftVersion}+
+        </span>
+      </div>
 
-      <h2 className="absolute -top-1 left-20 -translate-y-full whitespace-nowrap font-display text-sm text-white sm:left-32 sm:text-lg md:left-36">
-        Come entrare?
-      </h2>
-
-      <div className="flex gap-6">
+      <div className="flex gap-6 p-6 pb-10">
         <div className="min-w-0 flex-1">
-          <p className="font-display text-[10px] uppercase tracking-wide text-venrix-400">
-            Nome Server:
-          </p>
-          <div className="venrix-input mt-2 font-display text-sm text-white">{SITE.name}</div>
-
-          <p className="mt-5 font-display text-[10px] uppercase tracking-wide text-venrix-400">
-            IP del server:
-          </p>
-          <div className="venrix-input mt-2 flex items-center justify-between gap-2 font-mono text-sm text-white">
-            {SITE.serverIp}
-            <button
-              onClick={handleCopy}
-              aria-label="Copia IP del server"
-              className="pixel-corners-sm flex h-8 w-8 shrink-0 items-center justify-center border-2 border-black/40 bg-venrix-600 text-white transition hover:bg-venrix-500"
-            >
-              {copied ? <IconCheck className="h-4 w-4" /> : <IconCopy className="h-4 w-4" />}
-            </button>
+          <p className="mono-label text-venrix-200">Indirizzo</p>
+          <div className="mt-2">
+            <CopyIp />
           </div>
         </div>
 
-        {/* Spacer reserving room for the skin, which is positioned
-            absolutely against the panel below (not this div). */}
+        {/* Spazio riservato alla skin, che e' posizionata in assoluto
+            rispetto al pannello (non a questo div). */}
         <div className="hidden w-28 shrink-0 sm:block" />
       </div>
 

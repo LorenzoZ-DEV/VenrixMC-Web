@@ -16,10 +16,12 @@ const variantClass: Record<NonNullable<CommonProps["variant"]>, string> = {
   danger: "pixel-btn-danger",
 };
 
+// Taglie ricalibrate sul font proporzionale: il vecchio set (9/10/11px)
+// serviva al pixel font maiuscolo, illeggibile con Space Grotesk.
 const sizeClass: Record<NonNullable<CommonProps["size"]>, string> = {
-  sm: "px-3 py-1.5 text-[9px]",
-  md: "px-5 py-2.5 text-[10px]",
-  lg: "px-6 py-3.5 text-[11px]",
+  sm: "px-4 py-2 text-[13px]",
+  md: "px-5 py-2.5 text-[15px]",
+  lg: "px-8 py-3.5 text-[17px]",
 };
 
 function baseClasses(variant: CommonProps["variant"] = "primary", size: CommonProps["size"] = "md") {

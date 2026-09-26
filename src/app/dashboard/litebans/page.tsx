@@ -1,13 +1,18 @@
 import { LiteBansPanel } from "@/components/dashboard/LiteBansPanel";
+import { requireDashboardRole } from "@/components/dashboard/RoleGate";
 
-export default function LiteBansDashboardPage() {
+import { PageHeader } from "@/components/dashboard/PageHeader";
+
+export default async function LiteBansDashboardPage() {
+  await requireDashboardRole("STAFF");
+
   return (
     <div>
-      <h1 className="font-display text-lg text-white">Sanzioni (LiteBans)</h1>
-      <p className="mt-2 text-slate-400">
-        Storico completo di ban, mute, warn e kick letto direttamente dal database di LiteBans.
-      </p>
-      <div className="mt-6">
+      <PageHeader
+        title="Sanzioni (LiteBans)"
+        description="Storico completo di ban, mute, warn e kick letto direttamente dal database di LiteBans."
+      />
+      <div>
         <LiteBansPanel />
       </div>
     </div>

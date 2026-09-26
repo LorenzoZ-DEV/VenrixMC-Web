@@ -10,6 +10,7 @@
 
 import { SITE } from "./constants";
 import { getSetting } from "./settings";
+import { APPLY_COOLDOWN_DAYS } from "./applyCooldown";
 import type { NotifyOutcome, SendResult } from "./notifyResult";
 import {
   DiscordApiError,
@@ -156,6 +157,9 @@ async function notifyDecision(opts: {
 
 // ---------------------------------------------------------------- applications
 
+/** Sotto l'esito di una candidatura rifiutata: il limite di lib/applyCooldown.ts. */
+const RETRY_TEXT = `Potrai riprovare la candidatura tra ${APPLY_COOLDOWN_DAYS} giorni.`;
+
 export async function notifyApplicationDecision(application: {
   minecraftName: string;
   discord: string;
@@ -170,12 +174,13 @@ export async function notifyApplicationDecision(application: {
   const dmEmbed: DiscordEmbed = {
     title: approved ? "Candidatura accettata" : "Candidatura rifiutata",
     description: approved
-      ? `Ciao **${application.minecraftName}**, la tua candidatura per **${application.roles}** su ${SITE.name} è stata **accettata**! Entra nel Discord del server: un responsabile ti contatterà per i prossimi passi.`
-      : `Ciao **${application.minecraftName}**, la tua candidatura per **${application.roles}** su ${SITE.name} è stata **rifiutata**. Grazie comunque per l'interesse: puoi ricandidarti più avanti.`,
+      ? `Ciao **${application.minecraftName}**, la tua candidatura per **${application.roles}** su ${SITE.name} è stata **accettata**! Prossimo passo: apri un ticket nel Discord del server per sostenere la **candidatura orale** — un responsabile ti contatterà lì per fissarla.`
+      : `Ciao **${application.minecraftName}**, la tua candidatura per **${application.roles}** su ${SITE.name} è stata **rifiutata**. Grazie comunque per l'interesse.`,
     color: approved ? COLOR_APPROVED : COLOR_REJECTED,
     fields: [
       { name: "Ruolo richiesto", value: application.roles, inline: true },
       { name: "Esito", value: approved ? "Accettata" : "Rifiutata", inline: true },
+      ...(approved ? [] : [{ name: "Nuovo tentativo", value: RETRY_TEXT }]),
     ],
     footer: { text: `${SITE.name} · Staff Team` },
     timestamp: new Date().toISOString(),
@@ -196,6 +201,9 @@ export async function notifyApplicationDecision(application: {
         { name: "Esito", value: approved ? "✅ Accettata" : "❌ Rifiutata", inline: true },
         { name: "Discord", value: mention ?? application.discord, inline: true },
         { name: "Revisionata da", value: application.reviewerName, inline: true },
+        ...(approved
+          ? [{ name: "Prossimi passi", value: "Aprire un ticket per la candidatura orale" }]
+          : [{ name: "Nuovo tentativo", value: RETRY_TEXT }]),
       ],
       footer: { text: `${SITE.name} · Candidature staff` },
       timestamp: new Date().toISOString(),

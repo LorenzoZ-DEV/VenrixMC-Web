@@ -4,8 +4,6 @@ import { keys } from "./redis";
 export type ServerStatus = {
   online: boolean;
   players: { online: number; max: number };
-  version?: string;
-  motd?: string[];
 };
 
 const SERVER_IP = process.env.NEXT_PUBLIC_SERVER_IP ?? "play.venrixmc.uk";
@@ -25,8 +23,6 @@ export async function getServerStatus(): Promise<ServerStatus> {
           online: data.players?.online ?? 0,
           max: data.players?.max ?? 0,
         },
-        version: data.version,
-        motd: data.motd?.clean,
       } satisfies ServerStatus;
     } catch {
       return { online: false, players: { online: 0, max: 0 } } satisfies ServerStatus;

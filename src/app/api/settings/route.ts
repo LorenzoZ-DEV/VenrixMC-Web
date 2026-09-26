@@ -2,11 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireApiRole } from "@/lib/auth";
-import { settingsUpdateSchema, discordNotifySchema } from "@/lib/validators";
+import type { ZodTypeAny } from "zod";
+import { settingsUpdateSchema, discordNotifySchema, announcementSchema, serverModesSchema } from "@/lib/validators";
 import { invalidate } from "@/lib/cache";
 import { keys } from "@/lib/redis";
 import { logAudit } from "@/lib/audit";
 import { DISCORD_NOTIFY_KEY } from "@/lib/discordNotify";
+import { ANNOUNCEMENT_KEY, MODES_KEY } from "@/lib/siteStatus";
 
 // Generic key/value settings store (site colors, CTA text, social links,
 // toggles for public sections, ...) — used by the Developer live-edit panel.
@@ -19,7 +21,7 @@ export async function GET() {
 }
 
 export async function PUT(req: NextRequest) {
-  const auth = await requireApiRole(Role.DEVELOPER);
+  const auth = await requireApiRole(Role.ADMIN);
   if ("response" in auth) return auth.response;
 
   const body = await req.json().catch(() => null);
@@ -28,9 +30,16 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: "Dati non validi" }, { status: 400 });
   }
 
-  // Most settings are opaque blobs, but the Discord notification config drives
-  // real API calls — reject malformed guild/channel IDs at the door.
-  if (parsed.data.key === DISCORD_NOTIFY_KEY) {
+  // Le configurazioni strutturate guidano chiamate reali o pagine
+  // pubbliche — rifiuta i formati sbagliati all'ingresso.
+  const SCHEMA_BY_KEY: Record<string, ZodTypeAny | undefined> = {
+    [DISCORD_NOTIFY_KEY]: discordNotifySchema,
+    [ANNOUNCEMENT_KEY]: announcementSchema,
+    [MODES_KEY]: serverModesSchema,
+  };
+
+  const keySchema = SCHEMA_BY_KEY[parsed.data.key];
+  if (keySchema) {
     const raw = ((): unknown => {
       try {
         return JSON.parse(parsed.data.value);
@@ -39,10 +48,10 @@ export async function PUT(req: NextRequest) {
       }
     })();
 
-    const config = discordNotifySchema.safeParse(raw);
-    if (!config.success) {
+    const checked = keySchema.safeParse(raw);
+    if (!checked.success) {
       return NextResponse.json(
-        { error: config.error.issues[0]?.message ?? "Configurazione Discord non valida" },
+        { error: checked.error.issues[0]?.message ?? "Configurazione non valida" },
         { status: 400 }
       );
     }

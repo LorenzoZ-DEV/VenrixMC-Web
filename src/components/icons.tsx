@@ -1,8 +1,8 @@
 /**
- * Small hand-drawn icon set (square line caps/joins, no rounding) used
- * across the site instead of emoji — keeps a consistent, deliberately
- * blocky feel in line with the pixel-art theme rather than relying on a
- * generic icon library.
+ * Set di icone disegnate a mano, usate ovunque al posto delle emoji e senza
+ * dipendere da una libreria generica. I tratti sono arrotondati e leggeri per
+ * accompagnare il linguaggio visivo morbido del sito (raggi ampi, ombre
+ * diffuse) invece dei bordi netti della vecchia veste pixel.
  */
 import { SVGProps, CSSProperties } from "react";
 
@@ -12,9 +12,9 @@ const base = {
   viewBox: "0 0 24 24",
   fill: "none",
   stroke: "currentColor",
-  strokeWidth: 2,
-  strokeLinecap: "square" as const,
-  strokeLinejoin: "miter" as const,
+  strokeWidth: 1.8,
+  strokeLinecap: "round" as const,
+  strokeLinejoin: "round" as const,
 };
 
 export function IconHome(props: IconProps) {
@@ -346,7 +346,12 @@ export function MinecraftCube({
   );
 }
 
-/** Minecraft-slot style frame: stepped corners + inset bevel around an icon. */
+/**
+ * Riquadro che ospita un'icona dentro card e voci di elenco. Nasceva come
+ * slot dell'inventario di Minecraft (angoli a scaletta e bevel inciso); ora
+ * e' una tessera morbida su fondo rialzato, ma il nome resta perche' e' usato
+ * in una dozzina di punti e la funzione non e' cambiata.
+ */
 export function PixelFrame({
   children,
   className,
@@ -356,16 +361,82 @@ export function PixelFrame({
 }) {
   return (
     <div
-      className={
-        "pixel-corners-sm flex shrink-0 items-center justify-center border-2 border-black/40 bg-ink-900 " +
-        (className ?? "h-11 w-11")
-      }
-      style={{
-        boxShadow:
-          "inset 2px 2px 0 rgba(255,255,255,0.06), inset -2px -2px 0 rgba(0,0,0,0.5)",
-      }}
+      // Il riquadro dell'icona e' uno slot dell'inventario: incavato e piu'
+      // scuro della superficie che lo ospita, come la casella che nel gioco
+      // contiene un oggetto.
+      className={"surface-inset flex shrink-0 items-center justify-center " + (className ?? "h-11 w-11")}
     >
       {children}
     </div>
+  );
+}
+
+/* Coppia sole/luna per il selettore di tema chiaro-scuro. */
+export function IconSun(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="12" cy="12" r="4.2" />
+      <path d="M12 2.6v2.2M12 19.2v2.2M4.2 12H2M22 12h-2.2" />
+      <path d="M6.4 6.4 4.9 4.9M19.1 19.1l-1.5-1.5M17.6 6.4l1.5-1.5M4.9 19.1l1.5-1.5" />
+    </svg>
+  );
+}
+
+export function IconMoon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M20 14.2A8.2 8.2 0 0 1 9.8 4a8.4 8.4 0 1 0 10.2 10.2Z" />
+    </svg>
+  );
+}
+
+/* Chiave: identifica l area riservata allo staff. */
+export function IconKey(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="8" cy="15" r="3.6" />
+      <path d="M10.6 12.4 20 3M17.4 5.6l2 2M15 8l1.8 1.8" />
+    </svg>
+  );
+}
+
+/* Terminale: rappresenta la Console del server (es. sanzioni automatiche). */
+export function IconTerminal(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d="M7 9l3 3-3 3" />
+      <line x1="12" y1="15" x2="17" y2="15" />
+    </svg>
+  );
+}
+
+/* Lucchetto: discussione o forum chiusi alle risposte. */
+export function IconLock(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="4.5" y="10.5" width="15" height="9.5" rx="2" />
+      <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" />
+    </svg>
+  );
+}
+
+/* Puntina: discussione fissata in cima alla lista. */
+export function IconPin(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M9 3h6l-1 6 3.5 3.5H6.5L10 9 9 3z" />
+      <line x1="12" y1="12.5" x2="12" y2="21" />
+    </svg>
+  );
+}
+
+/* Occhio: contatore delle visualizzazioni di una discussione. */
+export function IconEye(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
   );
 }

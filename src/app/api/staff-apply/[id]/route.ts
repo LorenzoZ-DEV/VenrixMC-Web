@@ -1,24 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Role } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { requireApiRole } from "@/lib/auth";
+import { requireApplicationReviewer } from "@/lib/auth";
 import { staffApplyUpdateSchema } from "@/lib/validators";
 import { logAudit } from "@/lib/audit";
 import { invalidatePrefix } from "@/lib/cache";
 import { notifyApplicationDecision, describeOutcome, type NotifyOutcome } from "@/lib/discordNotify";
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
-  const auth = await requireApiRole(Role.HEAD);
+  const auth = await requireApplicationReviewer();
   if ("response" in auth) return auth.response;
 
-  const application = await prisma.staffApply.findUnique({ where: { id: params.id } });
+  const application = await prisma.staffApply.findFirst({ where: { id: params.id, ...auth.scope } });
   if (!application) return NextResponse.json({ error: "Non trovata" }, { status: 404 });
 
   return NextResponse.json({ application });
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
-  const auth = await requireApiRole(Role.HEAD);
+  const auth = await requireApplicationReviewer();
   if ("response" in auth) return auth.response;
 
   const body = await req.json().catch(() => null);
@@ -27,7 +26,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     return NextResponse.json({ error: "Dati non validi" }, { status: 400 });
   }
 
-  const existing = await prisma.staffApply.findUnique({ where: { id: params.id } });
+  const existing = await prisma.staffApply.findFirst({ where: { id: params.id, ...auth.scope } });
   if (!existing) return NextResponse.json({ error: "Non trovata" }, { status: 404 });
 
   // An empty discordId means "leave it as is", not "clear it".

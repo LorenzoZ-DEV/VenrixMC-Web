@@ -1,14 +1,18 @@
 import { requireDashboardRole } from "@/components/dashboard/RoleGate";
 import { UsersPanel } from "@/components/dashboard/UsersPanel";
 
+import { PageHeader } from "@/components/dashboard/PageHeader";
+
 export default async function UsersDashboardPage() {
   const session = await requireDashboardRole("ADMIN");
 
   return (
     <div>
-      <h1 className="font-display text-lg text-white">Gestione Utenti</h1>
-      <p className="mt-1 text-slate-400">Crea account staff e gestisci i ruoli.</p>
-      <div className="mt-6">
+      <PageHeader
+        title="Gestione Utenti"
+        description="Account dello staff e utenti registrati con Discord: da qui gestisci ruoli e accessi."
+      />
+      <div>
         <UsersPanel currentUserId={session.userId} />
       </div>
     </div>

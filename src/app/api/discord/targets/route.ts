@@ -15,7 +15,7 @@ import {
  * invited bot shows up on the next refresh.
  */
 export async function GET(req: NextRequest) {
-  const auth = await requireApiRole(Role.DEVELOPER);
+  const auth = await requireApiRole(Role.ADMIN);
   if ("response" in auth) return auth.response;
 
   if (!isBotConfigured()) {

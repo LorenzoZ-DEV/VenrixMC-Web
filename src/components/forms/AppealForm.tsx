@@ -48,10 +48,10 @@ export function AppealForm() {
   if (status === "success") {
     return (
       <div className="venrix-card flex flex-col items-center gap-3 p-8 text-center">
-        <PixelFrame className="h-12 w-12 text-emerald-400">
+        <PixelFrame className="h-12 w-12 text-emerald-600 dark:text-emerald-400">
           <IconCheck className="h-6 w-6" />
         </PixelFrame>
-        <p className="font-display text-xs text-emerald-400">Richiesta inviata</p>
+        <p className="font-display text-base font-semibold text-emerald-600 dark:text-emerald-400">Richiesta inviata</p>
         <p className="text-sm text-slate-400">
           Il nostro staff esaminerà il tuo appeal il prima possibile.
         </p>
@@ -99,9 +99,17 @@ export function AppealForm() {
         </div>
         <div>
           <label className="venrix-label" htmlFor="banReason">
-            Motivo del ban (se noto)
+            Motivo del ban *
           </label>
-          <input id="banReason" name="banReason" className="venrix-input" placeholder="Es. Cheating" />
+          <input
+            id="banReason"
+            name="banReason"
+            required
+            minLength={2}
+            maxLength={500}
+            className="venrix-input"
+            placeholder="Es. Cheating"
+          />
         </div>
       </div>
       <p className="-mt-2 text-xs text-slate-500">
@@ -142,7 +150,7 @@ export function AppealForm() {
         />
       </div>
 
-      {error && <p className="text-sm text-red-400">{error}</p>}
+      {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
 
       <Button type="submit" disabled={status === "loading"} className="w-full">
         {status === "loading" ? "Invio in corso..." : "Invia richiesta"}

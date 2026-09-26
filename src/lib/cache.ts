@@ -40,6 +40,8 @@ export async function invalidatePrefix(prefix: string) {
 
 // TTL presets (seconds) used across the app so they stay documented in one place.
 export const TTL = {
+  // La coppia nick/UUID cambia solo quando un giocatore si rinomina.
+  MOJANG_UUID: 60 * 60 * 24,
   NEWS_LIST: 60 * 5,
   NEWS_ITEM: 60 * 5,
   RULES: 60 * 60,
@@ -49,4 +51,10 @@ export const TTL = {
   LITEBANS: 60,
   PLAYER_COUNT: 30,
   STAFF_POSITIONS: 60 * 5,
+  STAFF_MEMBERS: 60 * 5,
+  // Il forum si muove in continuazione: la cache dell'indice serve ad
+  // assorbire i picchi, non a tenere i dati fermi — e comunque viene buttata
+  // a ogni scrittura (vedi invalidateForumIndex in lib/forum.ts).
+  FORUM_INDEX: 60,
+  FORUM_STATS: 60 * 2,
 } as const;

@@ -9,7 +9,7 @@ const testSchema = z.object({ channelId: z.string().trim().regex(/^\d{17,20}$/, 
 
 /** Posts a throwaway message so staff can verify the bot really can write there. */
 export async function POST(req: NextRequest) {
-  const auth = await requireApiRole(Role.DEVELOPER);
+  const auth = await requireApiRole(Role.ADMIN);
   if ("response" in auth) return auth.response;
 
   if (!isBotConfigured()) {

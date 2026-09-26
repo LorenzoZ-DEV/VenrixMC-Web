@@ -90,6 +90,30 @@ export async function listGuildTextChannels(guildId: string): Promise<BotChannel
     .sort((a, b) => a.position - b.position || a.name.localeCompare(b.name));
 }
 
+// ---------------------------------------------------------------- members
+
+export type GuildRole = { id: string; name: string; position: number };
+
+export async function listGuildRoles(guildId: string): Promise<GuildRole[]> {
+  const roles = await botFetch<GuildRole[]>(`/guilds/${guildId}/roles`);
+  return roles.map((r) => ({ id: r.id, name: r.name, position: r.position }));
+}
+
+/**
+ * Ruoli di un utente nel server. `null` se non ne fa parte: e un esito
+ * normale (chi si registra al forum non e per forza sul Discord), non un
+ * errore da segnalare.
+ */
+export async function getGuildMemberRoleIds(guildId: string, userId: string): Promise<string[] | null> {
+  try {
+    const member = await botFetch<{ roles: string[] }>(`/guilds/${guildId}/members/${userId}`);
+    return member.roles;
+  } catch (err) {
+    if (err instanceof DiscordApiError && err.status === 404) return null;
+    throw err;
+  }
+}
+
 // ---------------------------------------------------------------- messages
 
 export type DiscordEmbed = {
