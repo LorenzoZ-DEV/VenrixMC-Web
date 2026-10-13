@@ -61,13 +61,15 @@ if [[ ! -f .env ]]; then
   exit 1
 fi
 
-# `migrate` va buildato esplicitamente insieme ad `app`: `compose run` non
-# ribuilda da solo e riuserebbe l'immagine del deploy precedente, che contiene
-# la vecchia cartella prisma/migrations. Il risultato e un "No pending
+# Il servizio "migrate" va buildato esplicitamente insieme ad "app": compose
+# run non ribuilda da solo e riuserebbe l'immagine del deploy precedente, che
+# contiene la vecchia cartella prisma/migrations. Il risultato e un "No pending
 # migrations to apply" rassicurante mentre la migrazione nuova resta a terra.
+# (Niente backtick nei commenti qui dentro: questo heredoc non e quotato, e il
+# shell locale li eseguirebbe come sostituzione di comando.)
 docker compose -f docker-compose.prod.yml build app migrate
 docker compose -f docker-compose.prod.yml up -d mysql redis
-# </dev/null: lo script arriva a bash su stdin, e senza questo `run` se lo
+# </dev/null: lo script arriva a bash su stdin, e senza questo "run" se lo
 # mangia — i comandi dopo non partono e il deploy sembra riuscito lo stesso.
 docker compose -f docker-compose.prod.yml run --rm -T migrate </dev/null
 docker compose -f docker-compose.prod.yml up -d app

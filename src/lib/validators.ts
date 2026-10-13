@@ -78,7 +78,16 @@ export type StaffApplyInput = z.infer<typeof staffApplySchema>;
 export type StaffApplyAnswer = z.infer<typeof staffApplyAnswerSchema>;
 
 export const staffApplyUpdateSchema = z.object({
-  status: z.enum(["PENDING", "APPROVED", "REJECTED"]).optional(),
+  status: z
+    .enum([
+      "PENDING",
+      "APPROVED",
+      "REJECTED",
+      "INTERVIEW_PASSED",
+      "INTERVIEW_REJECTED",
+      "WITHDRAWN",
+    ])
+    .optional(),
   discordId: discordIdSchema.optional().or(z.literal("")),
 });
 

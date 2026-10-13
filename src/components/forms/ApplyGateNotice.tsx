@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Badge, statusLabel, statusTone } from "@/components/ui/Badge";
+import { StatusBadge } from "@/components/ui/Badge";
 import { IconClipboard, IconKey, IconShield, PixelFrame } from "@/components/icons";
 import { APPLY_COOLDOWN_DAYS, formatItDate, type ApplyGate } from "@/lib/applyCooldown";
 
@@ -82,7 +82,7 @@ export function ApplyGateNotice({
         giorni: la prossima potrai inviarla dal{" "}
         <span className="text-white">{formatItDate(gate.nextAt)}</span>.
       </p>
-      <Badge tone={statusTone(gate.status)}>{statusLabel(gate.status)}</Badge>
+      <StatusBadge status={gate.status} />
       <Link href="/dashboard/richieste" className="venrix-btn-secondary mt-2">
         Vedi le mie richieste
       </Link>

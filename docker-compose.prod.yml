@@ -35,12 +35,12 @@ services:
 
   # One-off container for running Prisma migrations against the prod DB.
   # Not started by `up`; deploy.sh runs it explicitly via `compose run`.
-  # Targets the "builder" stage (not the slim "runner") because that's the
-  # one with the Prisma CLI (a devDependency) still installed.
+  # Targets the "migrator" stage: ha la CLI di Prisma (una devDependency) e
+  # prisma/migrations, ma non compila il sito — quello lo fa solo `app`.
   migrate:
     build:
       context: .
-      target: builder
+      target: migrator
     env_file: .env
     environment:
       DATABASE_URL: mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql:3306/${MYSQL_DATABASE}

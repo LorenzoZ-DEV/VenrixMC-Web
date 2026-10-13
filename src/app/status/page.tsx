@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getNetworkStatus, type ModeStatus } from "@/lib/siteStatus";
+import { SITE } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Stato server · VenrixMC",
@@ -129,7 +130,7 @@ export default async function StatusPage() {
               {totalPlayers === 1 ? "giocatore online" : "giocatori online"} nel network. Problemi?
               Segnalali sul{" "}
               <Link
-                href="https://discord.gg/venrixmc"
+                href={SITE.discordInvite}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-venrix-200 hover:underline"

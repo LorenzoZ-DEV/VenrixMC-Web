@@ -4,20 +4,20 @@ import { keys } from "./redis";
 export type DiscordWidget = {
   enabled: boolean;
   presenceCount: number;
-  instantInvite: string | null;
 };
 
 const GUILD_ID = process.env.NEXT_PUBLIC_DISCORD_SERVER_ID;
-const INVITE_FALLBACK = process.env.NEXT_PUBLIC_DISCORD_INVITE ?? "";
 
 /**
  * Uses Discord's public widget.json endpoint (no bot token required —
  * the server owner just needs to enable "Server Widget" in Discord
  * settings). Falls back to disabled state if not configured/reachable.
+ * Serve solo per il conteggio online: l'invito resta SITE.discordInvite,
+ * perche' quello del widget e' generato da Discord e va fuori sincrono.
  */
 export async function getDiscordWidget(): Promise<DiscordWidget> {
   if (!GUILD_ID) {
-    return { enabled: false, presenceCount: 0, instantInvite: INVITE_FALLBACK || null };
+    return { enabled: false, presenceCount: 0 };
   }
 
   return cached(keys.cache("discord-widget", GUILD_ID), TTL.PLAYER_COUNT, async () => {
@@ -32,10 +32,9 @@ export async function getDiscordWidget(): Promise<DiscordWidget> {
       return {
         enabled: true,
         presenceCount: data.presence_count ?? 0,
-        instantInvite: data.instant_invite ?? (INVITE_FALLBACK || null),
       } satisfies DiscordWidget;
     } catch {
-      return { enabled: false, presenceCount: 0, instantInvite: INVITE_FALLBACK || null };
+      return { enabled: false, presenceCount: 0 };
     }
   });
 }

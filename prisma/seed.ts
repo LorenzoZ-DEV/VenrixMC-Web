@@ -55,7 +55,7 @@ async function main() {
     create: {
       key: "social_links",
       value: JSON.stringify({
-        discord: "https://discord.gg/venrixmc",
+        discord: "https://discord.gg/sDhGS4EVJw",
         store: "https://store.venrixmc.uk/",
         tiktok: "",
         youtube: "",

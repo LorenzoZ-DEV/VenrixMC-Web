@@ -37,6 +37,18 @@ ENV NODE_ENV=production \
 
 RUN npm run build
 
+# ---- migrator: solo quello che serve a `prisma migrate deploy` ----
+# Il container delle migrazioni non ha bisogno del sito compilato: puntarlo
+# allo stage "builder" costringeva il server a fare `next build` due volte
+# in parallelo, e su un VPS da 1 GB di RAM significa swap e OOM.
+FROM node:20-alpine AS migrator
+RUN apk add --no-cache openssl
+WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=deps /app/node_modules ./node_modules
+COPY package.json ./
+COPY prisma ./prisma
+
 # ---- runner: minimal production image ----
 FROM node:20-alpine AS runner
 RUN apk add --no-cache openssl

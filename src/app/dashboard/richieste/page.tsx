@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
-import { Badge, statusLabel, statusTone } from "@/components/ui/Badge";
+import { Badge, StatusBadge, statusLabel, statusTone } from "@/components/ui/Badge";
 import { IconClipboard, IconShield } from "@/components/icons";
 import { APPLY_COOLDOWN_DAYS, formatItDate, getApplyEligibility } from "@/lib/applyCooldown";
 
@@ -77,7 +77,7 @@ export default async function MyRequestsPage() {
                     <td className="px-4 py-3 text-slate-400">{app.minecraftName}</td>
                     <td className="px-4 py-3 text-slate-400">{formatItDate(app.createdAt)}</td>
                     <td className="px-4 py-3">
-                      <Badge tone={statusTone(app.status)}>{statusLabel(app.status)}</Badge>
+                      <StatusBadge status={app.status} />
                     </td>
                   </tr>
                 ))

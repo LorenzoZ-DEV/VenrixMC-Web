@@ -26,10 +26,19 @@ enum AppealStatus {
   DENIED
 }
 
+/// Una candidatura passa da due fasi: la parte scritta (questo modulo) e la
+/// candidatura orale, che si sostiene su Discord. APPROVED significa quindi
+/// "scritta accettata, orale ancora da fare": e' lo staff che, dopo il
+/// colloquio, chiude la pratica con INTERVIEW_PASSED o INTERVIEW_REJECTED.
 enum ApplyStatus {
   PENDING
   APPROVED
   REJECTED
+  INTERVIEW_PASSED
+  INTERVIEW_REJECTED
+  /// Il candidato si e' ritirato: vale in entrambe le fasi, e non e' un
+  /// giudizio dello staff sulla candidatura.
+  WITHDRAWN
 }
 
 model User {

@@ -51,7 +51,7 @@ export async function DiscordCTA() {
             non i token che si invertono passando da chiaro a scuro.
           */}
           <a
-            href={widget.instantInvite ?? SITE.discordInvite}
+            href={SITE.discordInvite}
             target="_blank"
             rel="noopener noreferrer"
             className="btn-base mt-8 bg-onbrand px-7 py-3.5 text-[17px] font-bold text-venrix-800 hover:bg-white"

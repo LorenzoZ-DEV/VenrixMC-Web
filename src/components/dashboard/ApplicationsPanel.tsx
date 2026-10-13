@@ -1,10 +1,25 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Badge, statusLabel, statusTone } from "@/components/ui/Badge";
+import { StatusBadge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { NotifyNotice, noticeFromOutcome, type Notice } from "@/components/dashboard/NotifyNotice";
+
+/**
+ * Le due fasi di una candidatura: PENDING/APPROVED/REJECTED decidono la
+ * scritta, INTERVIEW_* l'orale. APPROVED vuol dire "scritta passata, orale
+ * da fare": e' lo stato su cui lo staff torna dopo il colloquio.
+ * WITHDRAWN e' fuori dalle fasi: il candidato si e' ritirato, e si puo'
+ * annullare cosi sia una scritta che un orale.
+ */
+type ApplyStatus =
+  | "PENDING"
+  | "APPROVED"
+  | "REJECTED"
+  | "INTERVIEW_PASSED"
+  | "INTERVIEW_REJECTED"
+  | "WITHDRAWN";
 
 type WizardAnswer = { section: string; question: string; answer: string };
 
@@ -26,12 +41,25 @@ type Application = {
   roles: string;
   message: string;
   answers: WizardAnswer[] | null;
-  status: "PENDING" | "APPROVED" | "REJECTED";
+  status: ApplyStatus;
   createdAt: string;
   userId: string | null;
   user: { username: string } | null;
   reviewedBy: { username: string } | null;
 };
+
+/**
+ * Data e ora dell'invio. L'ora serve per i doppioni: due candidature dello
+ * stesso giocatore spesso arrivano lo stesso giorno a pochi minuti l'una
+ * dall'altra, e senza l'ora non si capisce quale tenere.
+ */
+function sentOn(value: string) {
+  const d = new Date(value);
+  return {
+    date: d.toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit", year: "numeric" }),
+    time: d.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" }),
+  };
+}
 
 function groupBySection(answers: WizardAnswer[]) {
   const groups: { section: string; items: WizardAnswer[] }[] = [];
@@ -77,7 +105,7 @@ export function ApplicationsPanel() {
     load();
   }, [load]);
 
-  async function updateStatus(id: string, newStatus: Application["status"]) {
+  async function updateStatus(id: string, newStatus: ApplyStatus) {
     const res = await fetch(`/api/staff-apply/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -104,6 +132,31 @@ export function ApplicationsPanel() {
         : { tone: "warn", text: data?.error ?? "Impossibile rimuovere la limitazione." }
     );
     setActive(null);
+  }
+
+  /**
+   * Doppioni: quando la stessa candidatura e' arrivata due volte si tiene
+   * quella buona e si cancella l'altra. E' definitivo, quindi si conferma.
+   */
+  async function removeApplication(app: Application) {
+    const sent = sentOn(app.createdAt);
+    if (
+      !confirm(
+        `Eliminare definitivamente la candidatura di ${app.minecraftName} (${app.roles}) inviata il ${sent.date} alle ${sent.time}?`
+      )
+    )
+      return;
+
+    const res = await fetch(`/api/staff-apply/${app.id}`, { method: "DELETE" });
+    const data = res.ok ? null : await res.json().catch(() => null);
+    setNotice(
+      res.ok
+        ? { tone: "ok", text: `Candidatura di ${app.minecraftName} eliminata.` }
+        : { tone: "warn", text: data?.error ?? "Impossibile eliminare la candidatura." }
+    );
+
+    setActive(null);
+    load();
   }
 
   function openApplication(app: Application) {
@@ -134,8 +187,11 @@ export function ApplicationsPanel() {
           >
             <option value="">Tutti</option>
             <option value="PENDING">In attesa</option>
-            <option value="APPROVED">Accettate</option>
-            <option value="REJECTED">Respinte</option>
+            <option value="APPROVED">In attesa orale</option>
+            <option value="REJECTED">Respinte alla scritta</option>
+            <option value="INTERVIEW_PASSED">Orale superata</option>
+            <option value="INTERVIEW_REJECTED">Respinte all&apos;orale</option>
+            <option value="WITHDRAWN">Annullate</option>
           </select>
         </div>
         <div>
@@ -160,19 +216,20 @@ export function ApplicationsPanel() {
               <th className="px-4 py-3">Discord</th>
               <th className="px-4 py-3">Ruolo</th>
               <th className="px-4 py-3">Stato</th>
+              <th className="px-4 py-3">Inviata</th>
               <th className="px-4 py-3 text-right">Azioni</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
+                <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
                   Caricamento...
                 </td>
               </tr>
             ) : items.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
+                <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
                   Nessuna candidatura trovata.
                 </td>
               </tr>
@@ -183,7 +240,13 @@ export function ApplicationsPanel() {
                   <td className="px-4 py-3 text-slate-400">{app.discord}</td>
                   <td className="px-4 py-3 text-slate-400">{app.roles}</td>
                   <td className="px-4 py-3">
-                    <Badge tone={statusTone(app.status)}>{statusLabel(app.status)}</Badge>
+                    <StatusBadge status={app.status} />
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3 text-slate-400">
+                    {sentOn(app.createdAt).date}
+                    <span className="ml-2 text-xs text-slate-500">
+                      {sentOn(app.createdAt).time}
+                    </span>
                   </td>
                   <td className="px-4 py-3 text-right">
                     <button
@@ -233,9 +296,17 @@ export function ApplicationsPanel() {
                 <p className="text-slate-300">{active.age}</p>
               </div>
             </div>
-            <div>
-              <p className="venrix-label">Ruolo desiderato</p>
-              <p className="text-slate-300">{active.roles}</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="venrix-label">Ruolo desiderato</p>
+                <p className="text-slate-300">{active.roles}</p>
+              </div>
+              <div>
+                <p className="venrix-label">Inviata il</p>
+                <p className="text-slate-300">
+                  {sentOn(active.createdAt).date} alle {sentOn(active.createdAt).time}
+                </p>
+              </div>
             </div>
             {active.answers && active.answers.length > 0 ? (
               <div className="space-y-4">
@@ -303,13 +374,106 @@ export function ApplicationsPanel() {
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-2">
-              <Button variant="primary" onClick={() => updateStatus(active.id, "APPROVED")}>
-                Approva
-              </Button>
-              <Button variant="danger" onClick={() => updateStatus(active.id, "REJECTED")}>
-                Rifiuta
-              </Button>
+            {/*
+              Una fase per volta: finche' la scritta e' in attesa si decide
+              solo quella, e l'esito dell'orale compare dopo — cosi non si
+              chiude un colloquio che non e' ancora stato fissato.
+            */}
+            <div className="border-t border-white/10 pt-4">
+              <p className="venrix-label">
+                {active.status === "WITHDRAWN"
+                  ? "Candidatura annullata"
+                  : active.status === "PENDING" || active.status === "REJECTED"
+                    ? "Candidatura scritta"
+                    : "Candidatura orale"}
+              </p>
+              <div className="mb-3 flex items-center gap-2">
+                <StatusBadge status={active.status} />
+              </div>
+
+              {active.status === "WITHDRAWN" ? (
+                <>
+                  <p className="mb-3 text-xs text-slate-500">
+                    Il candidato si è ritirato, quindi la candidatura è chiusa senza un esito.
+                    Puoi riaprirla se ha cambiato idea di nuovo.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="secondary" onClick={() => updateStatus(active.id, "PENDING")}>
+                      Riapri la scritta
+                    </Button>
+                    <Button variant="secondary" onClick={() => updateStatus(active.id, "APPROVED")}>
+                      Riapri l&apos;orale
+                    </Button>
+                  </div>
+                </>
+              ) : active.status === "PENDING" ? (
+                <>
+                  <p className="mb-3 text-xs text-slate-500">
+                    Approvando la scritta il candidato passa in attesa della candidatura orale e
+                    riceve su Discord l&apos;invito ad aprire un ticket.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="primary" onClick={() => updateStatus(active.id, "APPROVED")}>
+                      Approva la scritta
+                    </Button>
+                    <Button variant="danger" onClick={() => updateStatus(active.id, "REJECTED")}>
+                      Rifiuta
+                    </Button>
+                    <Button variant="secondary" onClick={() => updateStatus(active.id, "WITHDRAWN")}>
+                      Annulla candidatura
+                    </Button>
+                  </div>
+                  <p className="mt-2 text-xs text-slate-500">
+                    “Annulla candidatura” è per chi si è ritirato: la chiude in nero, senza
+                    rifiutarla e senza mandargli un DM.
+                  </p>
+                </>
+              ) : active.status === "REJECTED" ? (
+                <>
+                  <p className="mb-3 text-xs text-slate-500">
+                    La candidatura scritta è stata respinta. Puoi riaprirla se è stato un errore.
+                  </p>
+                  <Button variant="secondary" onClick={() => updateStatus(active.id, "PENDING")}>
+                    Rimetti in attesa
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <p className="mb-3 text-xs text-slate-500">
+                    Registra com&apos;è andato il colloquio: il candidato riceve l&apos;esito su
+                    Discord.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="primary"
+                      onClick={() => updateStatus(active.id, "INTERVIEW_PASSED")}
+                    >
+                      Orale superata
+                    </Button>
+                    <Button
+                      variant="danger"
+                      onClick={() => updateStatus(active.id, "INTERVIEW_REJECTED")}
+                    >
+                      Orale rifiutata
+                    </Button>
+                    {active.status === "APPROVED" ? (
+                      <Button variant="secondary" onClick={() => updateStatus(active.id, "WITHDRAWN")}>
+                        Annulla candidatura
+                      </Button>
+                    ) : (
+                      <Button variant="secondary" onClick={() => updateStatus(active.id, "APPROVED")}>
+                        Rimetti in attesa orale
+                      </Button>
+                    )}
+                  </div>
+                  {active.status === "APPROVED" && (
+                    <p className="mt-2 text-xs text-slate-500">
+                      Se si è ritirato prima del colloquio usa “Annulla candidatura”: la chiude in
+                      nero, senza contarla come orale rifiutata.
+                    </p>
+                  )}
+                </>
+              )}
             </div>
 
             {active.userId && (
@@ -325,6 +489,19 @@ export function ApplicationsPanel() {
                 </Button>
               </div>
             )}
+
+            <div className="border-t border-white/10 pt-4">
+              <p className="venrix-label">Elimina candidatura</p>
+              <p className="mb-3 text-xs text-slate-500">
+                Serve per i doppioni: se la stessa candidatura è arrivata due volte, tieni quella
+                giusta ed elimina l&apos;altra. È definitivo e non si può annullare, il candidato
+                non riceve nessun messaggio. Per chiudere una candidatura vera usa “Rifiuta” o
+                “Annulla candidatura”.
+              </p>
+              <Button variant="danger" onClick={() => removeApplication(active)}>
+                Elimina definitivamente
+              </Button>
+            </div>
           </div>
         )}
       </Modal>

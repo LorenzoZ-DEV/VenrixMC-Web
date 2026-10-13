@@ -10,12 +10,16 @@ export async function GET() {
   if ("response" in auth) return auth.response;
 
   const counts = await cached(keys.cache("apply-counts", "all"), TTL.APPLY_COUNTS, async () => {
-    const [pending, approved, rejected] = await Promise.all([
+    const [pending, approved, rejected, interviewPassed, interviewRejected, withdrawn] = await Promise.all([
       prisma.staffApply.count({ where: { status: ApplyStatus.PENDING } }),
       prisma.staffApply.count({ where: { status: ApplyStatus.APPROVED } }),
       prisma.staffApply.count({ where: { status: ApplyStatus.REJECTED } }),
+      prisma.staffApply.count({ where: { status: ApplyStatus.INTERVIEW_PASSED } }),
+      prisma.staffApply.count({ where: { status: ApplyStatus.INTERVIEW_REJECTED } }),
+      prisma.staffApply.count({ where: { status: ApplyStatus.WITHDRAWN } }),
     ]);
-    return { pending, approved, rejected };
+    // `approved` sono le scritte passate, cioe' chi aspetta l'orale.
+    return { pending, approved, rejected, interviewPassed, interviewRejected, withdrawn };
   });
 
   return NextResponse.json(counts);

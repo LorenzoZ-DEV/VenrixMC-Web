@@ -61,6 +61,8 @@ export type { SendResult, NotifyOutcome } from "./notifyResult";
 
 const COLOR_APPROVED = 0x22c55e;
 const COLOR_REJECTED = 0xef4444;
+/// Candidatura ritirata: nera, perche non e un esito dato dallo staff.
+const COLOR_WITHDRAWN = 0x111827;
 
 function truncate(text: string, max = 1000): string {
   return text.length > max ? `${text.slice(0, max - 1)}…` : text;
@@ -160,27 +162,89 @@ async function notifyDecision(opts: {
 /** Sotto l'esito di una candidatura rifiutata: il limite di lib/applyCooldown.ts. */
 const RETRY_TEXT = `Potrai riprovare la candidatura tra ${APPLY_COOLDOWN_DAYS} giorni.`;
 
+export type ApplyDecision =
+  | "APPROVED"
+  | "REJECTED"
+  | "INTERVIEW_PASSED"
+  | "INTERVIEW_REJECTED"
+  | "WITHDRAWN";
+
+/**
+ * Le quattro fini possibili di una candidatura. La scritta accettata non e'
+ * la fine della pratica: apre la fase orale, e il messaggio deve dire cosa
+ * fare adesso. L'orale ha poi il suo esito, che chiude la candidatura.
+ */
+function applyDecisionCopy(decision: ApplyDecision, minecraftName: string, roles: string) {
+  switch (decision) {
+    case "APPROVED":
+      return {
+        ok: true,
+        dmTitle: "Candidatura scritta accettata",
+        dmText: `Ciao **${minecraftName}**, la tua candidatura per **${roles}** su ${SITE.name} è stata **accettata**! Prossimo passo: apri un ticket nel Discord del server per sostenere la **candidatura orale** — un responsabile ti contatterà lì per fissarla.`,
+        outcome: "Accettata · in attesa candidatura orale",
+        channelOutcome: "✅ Scritta accettata",
+        extra: { name: "Prossimi passi", value: "Aprire un ticket per la candidatura orale" },
+      };
+    case "REJECTED":
+      return {
+        ok: false,
+        dmTitle: "Candidatura rifiutata",
+        dmText: `Ciao **${minecraftName}**, la tua candidatura per **${roles}** su ${SITE.name} è stata **rifiutata**. Grazie comunque per l'interesse.`,
+        outcome: "Rifiutata",
+        channelOutcome: "❌ Rifiutata",
+        extra: { name: "Nuovo tentativo", value: RETRY_TEXT },
+      };
+    case "INTERVIEW_PASSED":
+      return {
+        ok: true,
+        dmTitle: "Candidatura orale superata",
+        dmText: `Ciao **${minecraftName}**, la tua **candidatura orale** per **${roles}** su ${SITE.name} è andata bene: benvenuto nello staff team! Un responsabile ti spiegherà come iniziare.`,
+        outcome: "Orale superata",
+        channelOutcome: "✅ Orale superata",
+        extra: { name: "Prossimi passi", value: "Assegnare il ruolo e l'affiancamento" },
+      };
+    case "WITHDRAWN":
+      return {
+        ok: false,
+        dmTitle: "Candidatura annullata",
+        dmText: `Ciao **${minecraftName}**, la tua candidatura per **${roles}** su ${SITE.name} è stata **annullata** su tua richiesta.`,
+        outcome: "Annullata",
+        channelOutcome: "⬛ Annullata (ritiro)",
+        extra: { name: "Motivo", value: "Il candidato si è ritirato" },
+      };
+    case "INTERVIEW_REJECTED":
+      return {
+        ok: false,
+        dmTitle: "Candidatura orale non superata",
+        dmText: `Ciao **${minecraftName}**, il provino orale non è andato come previsto: la tua candidatura per **${roles}** su ${SITE.name} è stata **respinta**. Grazie per il tempo che ci hai dedicato.`,
+        outcome: "Orale rifiutata",
+        channelOutcome: "❌ Orale rifiutata",
+        extra: { name: "Nuovo tentativo", value: RETRY_TEXT },
+      };
+  }
+}
+
 export async function notifyApplicationDecision(application: {
   minecraftName: string;
   discord: string;
   discordId: string | null;
   roles: string;
-  status: "APPROVED" | "REJECTED";
+  status: ApplyDecision;
   reviewerName: string;
 }): Promise<NotifyOutcome> {
   const config = await getDiscordNotifyConfig();
-  const approved = application.status === "APPROVED";
+  const copy = applyDecisionCopy(application.status, application.minecraftName, application.roles);
+  const withdrawn = application.status === "WITHDRAWN";
+  const color = withdrawn ? COLOR_WITHDRAWN : copy.ok ? COLOR_APPROVED : COLOR_REJECTED;
 
   const dmEmbed: DiscordEmbed = {
-    title: approved ? "Candidatura accettata" : "Candidatura rifiutata",
-    description: approved
-      ? `Ciao **${application.minecraftName}**, la tua candidatura per **${application.roles}** su ${SITE.name} è stata **accettata**! Prossimo passo: apri un ticket nel Discord del server per sostenere la **candidatura orale** — un responsabile ti contatterà lì per fissarla.`
-      : `Ciao **${application.minecraftName}**, la tua candidatura per **${application.roles}** su ${SITE.name} è stata **rifiutata**. Grazie comunque per l'interesse.`,
-    color: approved ? COLOR_APPROVED : COLOR_REJECTED,
+    title: copy.dmTitle,
+    description: copy.dmText,
+    color,
     fields: [
       { name: "Ruolo richiesto", value: application.roles, inline: true },
-      { name: "Esito", value: approved ? "Accettata" : "Rifiutata", inline: true },
-      ...(approved ? [] : [{ name: "Nuovo tentativo", value: RETRY_TEXT }]),
+      { name: "Esito", value: copy.outcome, inline: true },
+      ...(copy.ok || withdrawn ? [] : [{ name: "Nuovo tentativo", value: RETRY_TEXT }]),
     ],
     footer: { text: `${SITE.name} · Staff Team` },
     timestamp: new Date().toISOString(),
@@ -189,21 +253,23 @@ export async function notifyApplicationDecision(application: {
   return notifyDecision({
     handle: application.discord || null,
     knownDiscordId: application.discordId,
-    dmEnabled: config.dmApplications,
+    // Un ritiro non si annuncia in DM: e' il candidato stesso ad averlo
+    // chiesto, e resta comunque tracciato nel canale dello staff.
+    dmEnabled: config.dmApplications && !withdrawn,
     channelId: config.applicationsChannelId,
     dmEmbed,
     channelEmbed: (mention) => ({
-      title: `Esito candidatura — ${application.minecraftName}`,
-      color: approved ? COLOR_APPROVED : COLOR_REJECTED,
+      title: withdrawn
+        ? `Candidatura annullata — ${application.minecraftName}`
+        : `Esito candidatura — ${application.minecraftName}`,
+      color,
       fields: [
         { name: "Giocatore", value: application.minecraftName, inline: true },
         { name: "Ruolo", value: application.roles, inline: true },
-        { name: "Esito", value: approved ? "✅ Accettata" : "❌ Rifiutata", inline: true },
+        { name: "Esito", value: copy.channelOutcome, inline: true },
         { name: "Discord", value: mention ?? application.discord, inline: true },
-        { name: "Revisionata da", value: application.reviewerName, inline: true },
-        ...(approved
-          ? [{ name: "Prossimi passi", value: "Aprire un ticket per la candidatura orale" }]
-          : [{ name: "Nuovo tentativo", value: RETRY_TEXT }]),
+        { name: withdrawn ? "Annullata da" : "Revisionata da", value: application.reviewerName, inline: true },
+        copy.extra,
       ],
       footer: { text: `${SITE.name} · Candidature staff` },
       timestamp: new Date().toISOString(),

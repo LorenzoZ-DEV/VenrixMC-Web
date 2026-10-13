@@ -4,7 +4,12 @@ import { requireApplicationReviewer } from "@/lib/auth";
 import { staffApplyUpdateSchema } from "@/lib/validators";
 import { logAudit } from "@/lib/audit";
 import { invalidatePrefix } from "@/lib/cache";
-import { notifyApplicationDecision, describeOutcome, type NotifyOutcome } from "@/lib/discordNotify";
+import {
+  notifyApplicationDecision,
+  describeOutcome,
+  type ApplyDecision,
+  type NotifyOutcome,
+} from "@/lib/discordNotify";
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   const auth = await requireApplicationReviewer();
@@ -52,7 +57,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   // double click or a note-only save doesn't DM the applicant twice.
   let notify: NotifyOutcome | null = null;
   const status = application.status;
-  const decided = status === "APPROVED" || status === "REJECTED";
+  // Ogni passaggio di fase e' una notizia per il candidato: la scritta
+  // accettata lo manda all'orale, e l'esito dell'orale chiude la pratica.
+  const decided = status !== "PENDING";
 
   if (decided && status !== existing.status) {
     notify = await notifyApplicationDecision({
@@ -60,7 +67,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       discord: application.discord,
       discordId: application.discordId,
       roles: application.roles,
-      status,
+      status: status as ApplyDecision,
       reviewerName: auth.session.username,
     });
 
@@ -82,4 +89,35 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 
   return NextResponse.json({ application, notify });
+}
+
+/**
+ * Cancella definitivamente una candidatura. Serve per i doppioni: quando lo
+ * stesso candidato compare due volte si tiene quella giusta e si butta
+ * l'altra. Non manda nessun DM — per il candidato la candidatura rimasta
+ * resta quella che vede nel suo profilo.
+ *
+ * Chi puo' rivedere una candidatura puo' anche eliminarla, quindi il Capo
+ * Builder resta limitato alle sue (auth.scope).
+ */
+export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+  const auth = await requireApplicationReviewer();
+  if ("response" in auth) return auth.response;
+
+  const existing = await prisma.staffApply.findFirst({
+    where: { id: params.id, ...auth.scope },
+    select: { minecraftName: true, roles: true, status: true, createdAt: true },
+  });
+  if (!existing) return NextResponse.json({ error: "Non trovata" }, { status: 404 });
+
+  await prisma.staffApply.delete({ where: { id: params.id } });
+
+  await invalidatePrefix("venrix:cache:apply-counts:");
+  await logAudit(
+    auth.session.userId,
+    "APPLY_DELETE",
+    `Candidatura eliminata: ${existing.minecraftName} (${existing.roles}, ${existing.status}, inviata il ${existing.createdAt.toISOString()})`
+  );
+
+  return NextResponse.json({ ok: true });
 }
