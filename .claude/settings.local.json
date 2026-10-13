@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-Process *)",
+      "Bash(npx tsc *)",
+      "Bash(command -v rsync)",
+      "Bash(command -v ssh)",
+      "Bash(ssh *)",
+      "Bash(bash deploy/deploy.sh)",
+      "Bash(echo \"EXIT=$?\")"
+    ]
+  }
+}
