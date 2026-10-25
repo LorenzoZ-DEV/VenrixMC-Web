@@ -84,6 +84,15 @@ export function Footer() {
       <div className="relative border-t border-white/5 px-4 py-5 text-center text-[13px] text-slate-500">
         <p>© {new Date().getFullYear()} VenrixMC. Non affiliato con Mojang AB.</p>
         <p className="mt-1">
+          <Link href="/terms" className="transition-colors hover:text-venrix-200 hover:underline">
+            Termini di Servizio
+          </Link>
+          {" · "}
+          <Link href="/privacy" className="transition-colors hover:text-venrix-200 hover:underline">
+            Privacy Policy
+          </Link>
+        </p>
+        <p className="mt-1">
           <span className="tabular font-mono">v.{SITE.version}</span> · Sviluppato da{" "}
           <a
             href={SITE.author.url}

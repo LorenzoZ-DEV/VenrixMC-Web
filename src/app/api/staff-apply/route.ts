@@ -11,6 +11,8 @@ import { getSession } from "@/lib/session";
 import { getApplyEligibility, formatItDate } from "@/lib/applyCooldown";
 import { findBlacklistMatch } from "@/lib/staffBlacklist";
 import { logAudit } from "@/lib/audit";
+import { runApplyAiCheck } from "@/lib/applyAiCheck";
+import { isAiDetectorConfigured } from "@/lib/aiDetector";
 
 // GET — Head Staff+ list with filters (the Capo Builder only sees Builder ones).
 export async function GET(req: NextRequest) {
@@ -45,7 +47,12 @@ export async function GET(req: NextRequest) {
     prisma.staffApply.count({ where }),
   ]);
 
-  return NextResponse.json({ items, total, totalPages: Math.max(1, Math.ceil(total / pageSize)) });
+  return NextResponse.json({
+    items,
+    total,
+    totalPages: Math.max(1, Math.ceil(total / pageSize)),
+    aiEnabled: isAiDetectorConfigured(),
+  });
 }
 
 // POST — submission from a logged-in account (any role, MEMBER included),
@@ -160,6 +167,12 @@ export async function POST(req: NextRequest) {
   }
 
   await invalidatePrefix("venrix:cache:apply-counts:");
+
+  // Senza await: il rilevatore AI puo metterci secondi e il candidato non deve
+  // aspettarlo. Il server e' un processo Node sempre acceso (standalone), quindi
+  // la richiesta finisce anche dopo la risposta; se fallisce, lo staff la
+  // rilancia dalla dashboard.
+  runApplyAiCheck(result.application.id).catch((err) => console.error("[ai-check]", err));
 
   return NextResponse.json({ application: result.application }, { status: 201 });
 }

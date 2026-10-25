@@ -157,6 +157,14 @@ model StaffApply {
   answers       Json?
   status        ApplyStatus @default(PENDING)
   ip            String?
+  /// Stima del rilevatore AI (Sapling) di quanto testo e' scritto con l'AI (0-100), calcolata
+  /// all'invio (lib/applyAiCheck.ts). Nullo = non ancora controllata o
+  /// controllo fallito: in quel caso aiError dice perche.
+  aiPercentage  Float?
+  /// Le frasi che il rilevatore segna come generate, per mostrarle allo staff.
+  aiSentences   Json?
+  aiCheckedAt   DateTime?
+  aiError       String?     @db.VarChar(300)
   reviewedById  String?
   reviewedBy    User?       @relation("ApplyReviewer", fields: [reviewedById], references: [id])
   /// Account del candidato: e su questo che si conta il limite di 14 giorni

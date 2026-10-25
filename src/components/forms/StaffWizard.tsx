@@ -254,6 +254,20 @@ export function StaffWizard({ wizardId }: { wizardId: WizardId }) {
 
       {error && <p className="mt-4 text-sm text-red-600 dark:text-red-400">{error}</p>}
 
+      {isLastSection && (
+        <p className="mt-6 text-xs leading-relaxed text-slate-400">
+          Inviando la candidatura accetti i{" "}
+          <Link href="/terms" target="_blank" className="text-venrix-300 hover:underline">
+            Termini di Servizio
+          </Link>{" "}
+          e dichiari di aver letto la{" "}
+          <Link href="/privacy" target="_blank" className="text-venrix-300 hover:underline">
+            Privacy Policy
+          </Link>
+          , che spiega quali dati raccogliamo e come li usiamo.
+        </p>
+      )}
+
       <div className="mt-8 flex items-center justify-between gap-3">
         {step > 0 ? (
           <Button type="button" variant="secondary" onClick={goBack} disabled={status === "loading"}>

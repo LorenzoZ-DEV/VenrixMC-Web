@@ -6,6 +6,8 @@ export const SITE = {
   serverIp: process.env.NEXT_PUBLIC_SERVER_IP ?? "play.venrixmc.uk",
   storeUrl: process.env.NEXT_PUBLIC_STORE_URL ?? "https://store.venrixmc.uk/",
   discordInvite: process.env.NEXT_PUBLIC_DISCORD_INVITE ?? "https://discord.gg/sDhGS4EVJw",
+  // Contatto del titolare del trattamento, citato in Privacy Policy e Termini.
+  contactEmail: "venrixmcinfo@gmail.com",
   // La versione minima supportata. Era scritta a mano nel pannello
   // dell'hero: ora la leggono anche i passi di "Come giocare", e due
   // stringhe scollegate sarebbero andate fuori sincrono al primo aggiornamento.

@@ -42,6 +42,10 @@ type Application = {
   message: string;
   answers: WizardAnswer[] | null;
   status: ApplyStatus;
+  aiPercentage: number | null;
+  aiSentences: string[] | null;
+  aiCheckedAt: string | null;
+  aiError: string | null;
   createdAt: string;
   userId: string | null;
   user: { username: string } | null;
@@ -59,6 +63,34 @@ function sentOn(value: string) {
     date: d.toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit", year: "numeric" }),
     time: d.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" }),
   };
+}
+
+/**
+ * Soglie del rilevamento AI. Sono larghe apposta: i rilevatori sbagliano spesso su
+ * testi brevi e in italiano, quindi solo una percentuale alta merita il rosso.
+ */
+function aiTone(pct: number) {
+  if (pct >= 70) return "bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/30";
+  if (pct >= 35) return "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30";
+  return "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30";
+}
+
+function AiBadge({ app }: { app: Pick<Application, "aiPercentage" | "aiCheckedAt" | "aiError"> }) {
+  if (app.aiPercentage !== null) {
+    return (
+      <span
+        className={`inline-flex items-center rounded-sm border px-2 py-0.5 font-mono text-xs font-semibold tabular ${aiTone(app.aiPercentage)}`}
+        title="Percentuale stimata di testo generato con l'AI (Sapling)"
+      >
+        {Math.round(app.aiPercentage)}%
+      </span>
+    );
+  }
+  return (
+    <span className="text-xs text-slate-500" title={app.aiError ?? undefined}>
+      {app.aiCheckedAt ? "n/d" : "—"}
+    </span>
+  );
 }
 
 function groupBySection(answers: WizardAnswer[]) {
@@ -85,6 +117,8 @@ export function ApplicationsPanel() {
   const [discordId, setDiscordId] = useState("");
   const [notice, setNotice] = useState<Notice | null>(null);
   const [liteBans, setLiteBans] = useState<{ configured: boolean; records: LiteBansRecord[] } | null>(null);
+  const [aiEnabled, setAiEnabled] = useState(false);
+  const [aiChecking, setAiChecking] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -97,6 +131,7 @@ export function ApplicationsPanel() {
       const data = await res.json();
       setItems(data.items);
       setTotalPages(data.totalPages);
+      setAiEnabled(Boolean(data.aiEnabled));
     }
     setLoading(false);
   }, [page, status, player]);
@@ -159,6 +194,21 @@ export function ApplicationsPanel() {
     load();
   }
 
+  async function recheckAi(app: Application) {
+    setAiChecking(true);
+    const res = await fetch(`/api/staff-apply/${app.id}/ai-check`, { method: "POST" });
+    const data = await res.json().catch(() => null);
+    setAiChecking(false);
+
+    if (!res.ok) {
+      setNotice({ tone: "warn", text: data?.error ?? "Controllo AI non riuscito." });
+      return;
+    }
+    const updated = { ...app, ...data };
+    setActive(updated);
+    setItems((prev) => prev.map((a) => (a.id === app.id ? updated : a)));
+  }
+
   function openApplication(app: Application) {
     setActive(app);
     setDiscordId(app.discordId ?? "");
@@ -216,6 +266,7 @@ export function ApplicationsPanel() {
               <th className="px-4 py-3">Discord</th>
               <th className="px-4 py-3">Ruolo</th>
               <th className="px-4 py-3">Stato</th>
+              {aiEnabled && <th className="px-4 py-3">AI</th>}
               <th className="px-4 py-3">Inviata</th>
               <th className="px-4 py-3 text-right">Azioni</th>
             </tr>
@@ -223,13 +274,13 @@ export function ApplicationsPanel() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
+                <td colSpan={aiEnabled ? 7 : 6} className="px-4 py-8 text-center text-slate-500">
                   Caricamento...
                 </td>
               </tr>
             ) : items.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
+                <td colSpan={aiEnabled ? 7 : 6} className="px-4 py-8 text-center text-slate-500">
                   Nessuna candidatura trovata.
                 </td>
               </tr>
@@ -242,6 +293,11 @@ export function ApplicationsPanel() {
                   <td className="px-4 py-3">
                     <StatusBadge status={app.status} />
                   </td>
+                  {aiEnabled && (
+                    <td className="px-4 py-3">
+                      <AiBadge app={app} />
+                    </td>
+                  )}
                   <td className="whitespace-nowrap px-4 py-3 text-slate-400">
                     {sentOn(app.createdAt).date}
                     <span className="ml-2 text-xs text-slate-500">
@@ -337,6 +393,47 @@ export function ApplicationsPanel() {
                   <p className="rounded-lg bg-ink-800 p-3 text-slate-300">{active.message}</p>
                 </div>
               </>
+            )}
+            {aiEnabled && (
+              <div>
+                <p className="venrix-label">Rilevamento AI (Sapling)</p>
+                <div className="rounded-lg bg-ink-800 p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <AiBadge app={active} />
+                      <span className="text-xs text-slate-400">
+                        {active.aiPercentage !== null
+                          ? "del testo sembra generato con l'AI"
+                          : active.aiError ?? "Non ancora controllata"}
+                      </span>
+                    </div>
+                    <Button
+                      variant="secondary"
+                      onClick={() => recheckAi(active)}
+                      disabled={aiChecking}
+                    >
+                      {aiChecking ? "Controllo..." : active.aiCheckedAt ? "Ricontrolla" : "Controlla"}
+                    </Button>
+                  </div>
+                  {active.aiSentences && active.aiSentences.length > 0 && (
+                    <div className="mt-3">
+                      <p className="text-xs text-slate-500">Frasi segnalate:</p>
+                      <ul className="mt-1 space-y-1 text-xs text-slate-300">
+                        {active.aiSentences.slice(0, 10).map((sentence, i) => (
+                          <li key={i} className="border-l-2 border-red-500/50 pl-2">
+                            {sentence}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  <p className="mt-3 text-xs text-slate-500">
+                    È una stima, non una prova: i rilevatori sbagliano spesso su testi brevi o in
+                    italiano. Usala per fare domande mirate all&apos;orale, non per rifiutare da
+                    sola una candidatura.
+                  </p>
+                </div>
+              </div>
             )}
             {liteBans?.configured && (
               <div>
